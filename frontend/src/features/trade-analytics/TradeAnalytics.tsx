@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import type { Trade } from "../../types/trade";
 import { aggregateActivity, aggregateBySide, aggregateBySymbol } from "./trade-analytics";
 import { RankedBarChart } from "./RankedBarChart";
@@ -15,6 +16,7 @@ interface TradeAnalyticsProps {
 }
 
 export function TradeAnalytics({ trades }: TradeAnalyticsProps) {
+  const navigate = useNavigate();
   const bySide = useMemo(() => aggregateBySide(trades), [trades]);
   const bySymbol = useMemo(() => aggregateBySymbol(trades), [trades]);
   const activity = useMemo(() => aggregateActivity(trades), [trades]);
@@ -30,6 +32,7 @@ export function TradeAnalytics({ trades }: TradeAnalyticsProps) {
         title="Volume by Symbol"
         items={bySymbol}
         colorFor={(item) => (item.label === "Other" ? "var(--text-muted)" : "var(--chart-series-blue)")}
+        onSelect={(item) => navigate(`/symbols/${encodeURIComponent(item.label)}`)}
       />
       <ActivityLineChart title={ACTIVITY_TITLE[activity.granularity]} points={activity.points} />
     </section>

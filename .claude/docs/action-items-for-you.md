@@ -9,7 +9,7 @@ Things Claude Code can't do on your behalf — accounts, credentials, local mach
 
 ## Still blocking
 
-- [ ] **Install Docker Desktop.** Still not found on this machine (`docker`/`docker compose` commands don't exist). Required to actually verify the `docker-compose.yml` path (3-service stack: backend, frontend, nginx reverse proxy on `http://localhost:8080`) — it's written but has **never been run**. Get it from docker.com, then run `docker compose up --build` and confirm `http://localhost:8080` loads, `/trades` returns JSON, and live updates work across two browser tabs through the proxy.
+- [ ] **Install Docker Desktop.** Still not found on this machine (`docker`/`docker compose` commands don't exist). Required to actually verify the `docker-compose.yml` path (3-service stack: backend, frontend, nginx reverse proxy on `http://localhost:8080`) — it's written but has **never been run**. Get it from docker.com, then run `docker compose up --build` and confirm: `http://localhost:8080` loads; `http://localhost:8080/api/trades` returns JSON (the API moved behind an `/api` prefix on 2026-09-19 — the bare `/trades` URL now correctly serves the SPA, not JSON); `http://localhost:8080/positions` loads the **positions page** and survives a hard refresh (that deep-link case was broken twice over until the same change); and live updates work across two browser tabs through the proxy.
 - Node.js v24.20.0 and npm 11.19.0 are already installed — no action needed there.
 
 ## Decisions only you can make

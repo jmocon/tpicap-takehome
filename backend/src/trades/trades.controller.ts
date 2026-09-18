@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import type { AuditRepository } from "../audit/audit.repository.js";
 import { ValidationError } from "../shared/errors.js";
 import { ok } from "../shared/api-response.js";
 import type { TradesService } from "./trades.service.js";
@@ -26,7 +27,10 @@ function parseFilters(query: Request["query"]): TradeFilters {
 }
 
 export class TradesController {
-  constructor(private readonly service: TradesService) {}
+  constructor(
+    private readonly service: TradesService,
+    private readonly auditRepository: Pick<AuditRepository, "listByTradeId">,
+  ) {}
 
   list = (req: Request, res: Response) => {
     const trades = this.service.list(parseFilters(req.query), parseSort(req.query));
@@ -59,5 +63,12 @@ export class TradesController {
   cancel = (req: Request, res: Response) => {
     const trade = this.service.cancel(req.params.id!);
     res.json(ok(trade));
+  };
+
+  listAudit = (req: Request, res: Response) => {
+    const id = req.params.id!;
+    this.service.get(id); // throws NotFoundError for an unknown trade
+    const entries = this.auditRepository.listByTradeId(id);
+    res.json(ok(entries));
   };
 }

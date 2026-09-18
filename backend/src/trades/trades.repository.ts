@@ -36,6 +36,21 @@ export function generateTradeId(): string {
   return `TRD-${randomUUID().split("-")[0]!.toUpperCase()}`;
 }
 
+/**
+ * SQL LIKE treats `%` and `_` as wildcards. Escape any literal occurrences
+ * (plus the escape character itself) in user-supplied filter text before
+ * wrapping it in `%...%`, so a search for e.g. `50%` or `foo_bar` matches
+ * those literal characters rather than acting as a wildcard.
+ */
+function escapeLikeWildcards(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+}
+
+/** Builds a `%...%` LIKE pattern for a case-insensitive substring match. */
+function containsPattern(value: string): string {
+  return `%${escapeLikeWildcards(value)}%`;
+}
+
 export class TradesRepository {
   constructor(private readonly db: DatabaseSync) {}
 
@@ -44,12 +59,14 @@ export class TradesRepository {
     const params: Record<string, string> = {};
 
     if (filters.symbol) {
-      clauses.push("symbol = @symbol");
-      params.symbol = filters.symbol.toUpperCase();
+      // SQLite's LIKE is case-insensitive for ASCII by default, which also
+      // covers this field's case-insensitivity without an explicit upper/lower call.
+      clauses.push("symbol LIKE @symbol ESCAPE '\\'");
+      params.symbol = containsPattern(filters.symbol);
     }
     if (filters.trader) {
-      clauses.push("trader = @trader");
-      params.trader = filters.trader;
+      clauses.push("trader LIKE @trader ESCAPE '\\'");
+      params.trader = containsPattern(filters.trader);
     }
     if (filters.side) {
       clauses.push("side = @side");

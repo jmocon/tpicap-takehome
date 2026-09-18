@@ -1,5 +1,5 @@
 import { httpClient } from "./http-client";
-import type { AmendTradeInput, CreateTradeInput, Trade } from "../types/trade";
+import type { AmendTradeInput, AuditLogEntry, CreateTradeInput, Trade } from "../types/trade";
 
 export interface TradeQuery {
   symbol?: string;
@@ -24,4 +24,5 @@ export const tradesApi = {
   create: (input: CreateTradeInput) => httpClient.post<Trade>("/trades", input),
   amend: (id: string, input: AmendTradeInput) => httpClient.patch<Trade>(`/trades/${id}`, input),
   cancel: (id: string) => httpClient.post<Trade>(`/trades/${id}/cancel`),
+  getAudit: (id: string) => httpClient.get<AuditLogEntry[]>(`/trades/${id}/audit`),
 };

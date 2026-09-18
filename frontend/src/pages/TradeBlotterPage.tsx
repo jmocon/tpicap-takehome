@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { tradesApi, type TradeQuery } from "../api/trades-api";
 import type { Trade } from "../types/trade";
 import { useTrades } from "../features/trade-blotter/use-trades";
@@ -23,14 +23,32 @@ const AUTO_SIMULATE_INTERVALS = [
 
 const DEFAULT_AUTO_SIMULATE_INTERVAL_MS = 2000;
 
+/** How long a "your action landed" confirmation stays on screen. */
+const STATUS_MESSAGE_MS = 4000;
+
 export function TradeBlotterPage() {
   const [query, setQuery] = useState<TradeQuery>({ sortBy: "tradeDate", sortDir: "desc" });
   const { trades, loading, error, refresh } = useTrades(query);
   const [formTarget, setFormTarget] = useState<FormTarget>(undefined);
   const [actionError, setActionError] = useState<string>();
+  const [statusMessage, setStatusMessage] = useState("");
+  const [cancellingId, setCancellingId] = useState<string>();
   const [simulating, setSimulating] = useState(false);
   const [autoSimulating, setAutoSimulating] = useState(false);
   const [autoSimulateIntervalMs, setAutoSimulateIntervalMs] = useState(DEFAULT_AUTO_SIMULATE_INTERVAL_MS);
+  const statusTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // With live updates (and Auto Simulate) running, rows appear and change on
+  // their own — a confirmation is the only way to tell "my amend landed" from
+  // "another client booked something". Announced politely so it doesn't
+  // interrupt, and cleared so it can't be mistaken for a fresh result later.
+  const announce = useCallback((message: string) => {
+    setStatusMessage(message);
+    clearTimeout(statusTimerRef.current);
+    statusTimerRef.current = setTimeout(() => setStatusMessage(""), STATUS_MESSAGE_MS);
+  }, []);
+
+  useEffect(() => () => clearTimeout(statusTimerRef.current), []);
 
   function handleSortChange(field: NonNullable<TradeQuery["sortBy"]>) {
     setQuery((current) => ({
@@ -40,12 +58,22 @@ export function TradeBlotterPage() {
     }));
   }
 
+  // Cancel is destructive and irreversible, so the in-flight id is tracked
+  // here and handed to TradeTable, which latches that row's button. The id is
+  // in both the confirmation and the failure text because the message renders
+  // at the top of the page, far from the row it refers to.
   async function handleCancel(trade: Trade) {
+    if (cancellingId) return;
     setActionError(undefined);
+    setCancellingId(trade.id);
     try {
       await tradesApi.cancel(trade.id);
+      announce(`Trade ${trade.id} cancelled`);
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Failed to cancel trade");
+      const reason = err instanceof Error ? err.message : "unknown error";
+      setActionError(`Failed to cancel ${trade.id}: ${reason}`);
+    } finally {
+      setCancellingId(undefined);
     }
   }
 
@@ -73,8 +101,10 @@ export function TradeBlotterPage() {
   async function handleFormSubmit(values: TradeFormSubmitValues) {
     if (formTarget?.mode === "amend") {
       await tradesApi.amend(formTarget.trade.id, values);
+      announce(`Trade ${formTarget.trade.id} amended`);
     } else {
-      await tradesApi.create(values);
+      const created = await tradesApi.create(values);
+      announce(`Trade ${created.id} created`);
     }
     setFormTarget(undefined);
   }
@@ -122,10 +152,15 @@ export function TradeBlotterPage() {
         </div>
       </header>
 
-      <TradeFilters filters={query} onChange={setQuery} onRefresh={refresh} refreshing={loading} />
+      <TradeFilters filters={query} trades={trades} onChange={setQuery} onRefresh={refresh} refreshing={loading} />
 
       {error && <p className="field-error">{error}</p>}
       {actionError && <p className="field-error">{actionError}</p>}
+      {/* Always rendered, never conditionally mounted — assistive tech only
+          announces changes inside a live region that already existed. */}
+      <p className="status-message" role="status" aria-live="polite">
+        {statusMessage}
+      </p>
 
       <TradeAnalytics trades={trades} />
 
@@ -136,10 +171,14 @@ export function TradeBlotterPage() {
         onSortChange={handleSortChange}
         onAmend={(trade) => setFormTarget({ mode: "amend", trade })}
         onCancel={handleCancel}
+        cancellingId={cancellingId}
       />
 
       {formTarget && (
-        <Modal onClose={() => setFormTarget(undefined)}>
+        <Modal
+          label={formTarget.mode === "amend" ? `Amend trade ${formTarget.trade.id}` : "Create trade"}
+          onClose={() => setFormTarget(undefined)}
+        >
           <TradeForm
             initialTrade={formTarget.mode === "amend" ? formTarget.trade : undefined}
             onSubmit={handleFormSubmit}

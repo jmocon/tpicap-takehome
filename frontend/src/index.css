@@ -30,21 +30,111 @@ body {
   color: var(--text-primary);
 }
 
-.trade-blotter-page {
+/* --- Primary nav --- */
+
+.app-nav {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px 16px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  row-gap: 4px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.app-nav-link {
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.app-nav-link:hover {
+  color: var(--text-primary);
+  background: var(--surface-2);
+}
+
+.app-nav-link.active {
+  color: var(--text-primary);
+  background: var(--surface-1);
+  border-color: var(--border-subtle);
+}
+
+.app-nav-spacer {
+  flex: 1;
+}
+
+.app-nav-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+}
+
+.app-nav-username {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* --- Login page --- */
+
+.login-page {
+  max-width: 360px;
+  margin: 96px auto 0;
+  padding: 0 16px;
+}
+
+.login-form {
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.trade-blotter-page,
+.symbol-page,
+.positions-page {
   max-width: 1100px;
   margin: 0 auto;
   padding: 24px 16px 64px;
 }
 
-.trade-blotter-page header {
+/* One shared header rule for all three pages — they only ever differed by
+   selector. `flex-wrap` + `row-gap` mirror .trade-filters: when the title and
+   its actions no longer fit side by side, the actions drop to a second line
+   instead of forcing the page into horizontal scroll. */
+.trade-blotter-page header,
+.symbol-page header,
+.positions-page header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  row-gap: 8px;
   margin-bottom: 20px;
 }
 
-.trade-blotter-page header h1 {
+.trade-blotter-page header h1,
+.symbol-page header h1,
+.positions-page header h1 {
   margin: 0;
+}
+
+.symbol-page header select {
+  padding: 6px 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: inherit;
+  font: inherit;
 }
 
 .header-meta {
@@ -58,16 +148,13 @@ body {
   font-size: 14px;
 }
 
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
+.header-actions,
 .simulate-controls {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
+  row-gap: 8px;
 }
 
 .header-actions select {
@@ -103,6 +190,44 @@ body {
 
 .trade-filters .filter-trader {
   width: 140px;
+}
+
+/* Symbol/Trader suggestion dropdown — floating panel, reusing the same
+   surface/border/shadow tokens as .chart-tooltip rather than new colors. */
+.filter-suggest {
+  position: relative;
+}
+
+.filter-suggest-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 10;
+  min-width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--surface-2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.filter-suggest-option {
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.filter-suggest-option:hover,
+.filter-suggest-option.active {
+  background: var(--surface-1);
+  color: var(--accent-hover);
 }
 
 /* Button hierarchy: exactly one primary (solid) action per view; secondary
@@ -150,18 +275,24 @@ button:focus-visible {
   background: var(--surface-2);
 }
 
-/* Toggle-on state for the "Auto Simulate" button — reads as "running" while
-   distinct from .btn-primary, which stays reserved for the one solid-fill
-   primary action per view (New Trade). */
+/* Toggle-on state for the "Auto Simulate" button. It keeps .btn-secondary's
+   outlined shape on purpose — the solid accent fill stays reserved for the one
+   primary action per view (New Trade) — and signals "running" with the live
+   green (--buy) plus a leading ● glyph, the same generated-content trick
+   .form-section summary uses for its open/closed marker. */
 .btn-toggle-on {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
+  background: transparent;
+  border-color: var(--buy);
+  color: var(--buy);
+}
+
+.btn-toggle-on::before {
+  content: "● ";
 }
 
 .btn-toggle-on:not(:disabled):hover {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
+  background: rgba(74, 222, 128, 0.12);
+  border-color: var(--buy);
 }
 
 .btn-ghost {
@@ -190,9 +321,31 @@ button:focus-visible {
   color: var(--sell);
 }
 
+/* Horizontal overflow belongs to the table alone. Without this wrapper the
+   9-column blotter widens the whole document below ~900px, so the nav and
+   the page header scroll sideways along with it. */
+.table-scroll {
+  overflow-x: auto;
+  /* `overflow-x: auto` also clips vertically, so leave room for the 2px focus
+     ring (plus its 2px offset) on the edge sort buttons and row actions. */
+  padding: 4px;
+  margin: -4px;
+}
+
 .trade-table {
   width: 100%;
   border-collapse: collapse;
+}
+
+/* A min-width is what gives .table-scroll something to scroll: without it the
+   columns squeeze to unreadable rather than overflowing. Two values because
+   the blotter carries three more columns than the positions table. */
+.table-scroll .trade-table {
+  min-width: 720px;
+}
+
+.table-scroll .trade-table-blotter {
+  min-width: 920px;
 }
 
 .trade-table th,
@@ -271,9 +424,33 @@ button:focus-visible {
   padding: 24px 0;
 }
 
+/* --- Positions page P&L coloring --- */
+
+.pnl-positive {
+  color: var(--buy);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.pnl-negative {
+  color: var(--sell);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
 .field-error {
   color: var(--sell);
   font-size: 13px;
+}
+
+/* Polite live region for "your action landed" confirmations. It's always in
+   the DOM (assistive tech only announces changes to a region that already
+   exists) and reserves its own line so the content below doesn't jump. */
+.status-message {
+  color: var(--buy);
+  font-size: 13px;
+  min-height: 18px;
+  margin: 0 0 8px;
 }
 
 .modal-backdrop {
@@ -291,8 +468,16 @@ button:focus-visible {
   padding: 24px;
   border-radius: 8px;
   width: min(460px, 90vw);
+  /* Scroll the dialog itself on short viewports rather than letting it spill
+     past the backdrop where the actions become unreachable. */
+  max-height: 90vh;
+  overflow-y: auto;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
   animation: modal-in 0.15s ease;
+}
+
+.modal-content:focus {
+  outline: none;
 }
 
 @keyframes fade-in {
@@ -392,11 +577,80 @@ button:focus-visible {
   margin-top: 16px;
 }
 
+.audit-log-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 360px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.audit-log-entry {
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+}
+
+.audit-log-entry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.audit-action {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.audit-action-amend {
+  background: #1e2a4a;
+  color: var(--accent);
+}
+
+.audit-action-cancel {
+  background: #3a1212;
+  color: var(--sell);
+}
+
+.audit-log-timestamp {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.audit-log-changes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 /* --- Trade analytics --- */
 
 .analytics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+/* One chart per row, full page width — used on SymbolPage, which has the
+   room (a single symbol's worth of charts, not a 3-up dashboard) to let
+   each one — especially the OHLC chart — actually use it. */
+.analytics-grid-stacked {
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 16px;
   margin-bottom: 20px;
 }
@@ -438,6 +692,47 @@ button:focus-visible {
   font-size: 13px;
 }
 
+.ranked-bar-row-selectable {
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.ranked-bar-row-selectable:hover,
+.ranked-bar-row-selectable:focus-visible {
+  background: var(--surface-2);
+}
+
+.ranked-bar-row-selectable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.chart-card-link {
+  cursor: pointer;
+  border-radius: 8px;
+  transition: transform 0.15s ease;
+}
+
+.chart-card-link:hover {
+  transform: translateY(-2px);
+}
+
+.chart-card-link:hover .chart-card,
+.chart-card-link:focus-visible .chart-card {
+  border-color: var(--accent);
+}
+
+.chart-card-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.symbol-overview-hint {
+  margin: 0 0 4px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
 .ranked-bar-label {
   color: var(--text-secondary);
   font-weight: 600;
@@ -470,12 +765,32 @@ button:focus-visible {
   width: 100%;
 }
 
+/* Height is governed by the viewBox ratio, not by a max-height. An SVG with a
+   fixed viewBox keeps its aspect ratio, so capping the *height* also caps the
+   *width* — a `max-height: 20vh` here used to letterbox the stacked charts to
+   about half the row width. The height budget is instead enforced by picking a
+   viewBox whose natural height at full width is already short: the page is
+   max-width 1100px, so a dashboard chart is at most ~313px wide (~94px tall)
+   and a stacked one at most ~1036px wide (~170px tall). */
 .activity-chart {
   width: 100%;
   height: auto;
   aspect-ratio: 600 / 180;
   display: block;
   overflow: visible;
+}
+
+/* One-per-row charts render from a wider 1100x180 viewBox (see the `wide`
+   variant in ActivityLineChart/OHLCChart) so they fill the row while staying
+   short, instead of a 600-wide box being upscaled 1.7x. */
+.analytics-grid-stacked .activity-chart {
+  aspect-ratio: 1100 / 180;
+}
+
+/* Near-1:1 scale in the wide variant (1100 user units into ~1036 CSS px), so
+   axis labels need a slightly larger nominal size to land at ~11px rendered. */
+.analytics-grid-stacked .chart-axis-label {
+  font-size: 12px;
 }
 
 .chart-gridline {
@@ -540,4 +855,121 @@ button:focus-visible {
 .chart-tooltip span {
   color: var(--text-secondary);
   font-size: 11px;
+}
+
+/* --- OHLC candlestick chart (SymbolPage) --- */
+
+.ohlc-bar {
+  cursor: pointer;
+}
+
+.ohlc-bar:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ohlc-wick-up,
+.ohlc-wick-down {
+  stroke-width: 1;
+}
+
+.ohlc-wick-up {
+  stroke: var(--buy);
+}
+
+.ohlc-wick-down {
+  stroke: var(--sell);
+}
+
+.ohlc-body-up {
+  fill: var(--buy);
+}
+
+.ohlc-body-down {
+  fill: var(--sell);
+}
+
+/* --- Per-row sparkline (TradeTable "Trend" column) --- */
+
+.cell-trend {
+  width: 68px;
+}
+
+.sparkline {
+  display: block;
+}
+
+.sparkline-area {
+  fill: var(--chart-series-blue);
+  fill-opacity: 0.1;
+  stroke: none;
+}
+
+.sparkline-line {
+  fill: none;
+  stroke: var(--chart-series-blue);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sparkline-dot {
+  fill: var(--text-muted);
+}
+
+/* --- Responsive --- */
+
+/* Tablet and below: the page gutters shrink and every header control block
+   claims a full row, so the title never has to share a line it can't fit on.
+   The tables keep their desktop column widths and scroll inside .table-scroll
+   rather than reflowing — a blotter row is a record, and stacking its fields
+   into cards would break the column-scanning this view exists for. */
+@media (max-width: 720px) {
+  .trade-blotter-page,
+  .symbol-page,
+  .positions-page {
+    padding: 16px 12px 48px;
+  }
+
+  .app-nav {
+    padding: 12px 12px 0;
+  }
+
+  .trade-blotter-page header h1,
+  .symbol-page header h1,
+  .positions-page header h1 {
+    font-size: 24px;
+  }
+
+  .header-meta,
+  .header-actions {
+    flex: 1 1 100%;
+  }
+
+  .simulate-controls {
+    flex: 1 1 auto;
+  }
+}
+
+/* Phone: the trade form's fixed-basis fields (120px symbol, 110px side,
+   140px qty/price) no longer fit two-up inside a 90vw dialog, so each row
+   wraps to one field per line. Higher specificity beats the `!important`
+   flex-basis on the individual .form-field-* rules. */
+@media (max-width: 480px) {
+  .form-row {
+    flex-wrap: wrap;
+  }
+
+  .form-row .form-field {
+    flex: 1 1 100% !important;
+  }
+
+  .modal-content {
+    width: 94vw;
+    padding: 20px 16px;
+  }
+
+  .app-nav-user {
+    padding-bottom: 4px;
+  }
 }

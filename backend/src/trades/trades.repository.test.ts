@@ -38,6 +38,28 @@ describe("TradesRepository", () => {
     expect(msftOnly).toHaveLength(1);
   });
 
+  it("matches symbol and trader on a case-insensitive substring, not just an exact value", () => {
+    repository.create({ symbol: "AAPL", side: "BUY", quantity: 1, price: 1, trader: "JSMITH", tradeDate: "2026-01-01T00:00:00.000Z" });
+    repository.create({ symbol: "MSFT", side: "SELL", quantity: 1, price: 1, trader: "BJONES", tradeDate: "2026-01-01T00:00:00.000Z" });
+
+    expect(repository.list({ symbol: "AAP" }).map((row) => row.symbol)).toEqual(["AAPL"]);
+    expect(repository.list({ symbol: "aap" }).map((row) => row.symbol)).toEqual(["AAPL"]);
+    expect(repository.list({ symbol: "PL" }).map((row) => row.symbol)).toEqual(["AAPL"]);
+
+    expect(repository.list({ trader: "smith" }).map((row) => row.trader)).toEqual(["JSMITH"]);
+    expect(repository.list({ trader: "SMI" }).map((row) => row.trader)).toEqual(["JSMITH"]);
+  });
+
+  it("treats a literal % or _ in the filter value as a literal character, not a wildcard", () => {
+    repository.create({ symbol: "AAPL", side: "BUY", quantity: 1, price: 1, trader: "A%B_C", tradeDate: "2026-01-01T00:00:00.000Z" });
+    repository.create({ symbol: "MSFT", side: "SELL", quantity: 1, price: 1, trader: "AXBYC", tradeDate: "2026-01-01T00:00:00.000Z" });
+
+    // Without escaping, "%" and "_" would behave as SQL wildcards and match AXBYC too.
+    expect(repository.list({ trader: "A%B_C" }).map((row) => row.trader)).toEqual(["A%B_C"]);
+    expect(repository.list({ trader: "%" }).map((row) => row.trader)).toEqual(["A%B_C"]);
+    expect(repository.list({ trader: "_" }).map((row) => row.trader)).toEqual(["A%B_C"]);
+  });
+
   it("sorts by the requested field and direction", () => {
     repository.create({ symbol: "AAPL", side: "BUY", quantity: 1, price: 300, trader: "A", tradeDate: "2026-01-01T00:00:00.000Z" });
     repository.create({ symbol: "MSFT", side: "BUY", quantity: 1, price: 100, trader: "B", tradeDate: "2026-01-01T00:00:00.000Z" });

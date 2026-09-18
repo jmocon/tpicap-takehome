@@ -1,12 +1,24 @@
 import { useMemo, useState } from "react";
 import type { ActivityPoint } from "./trade-analytics";
 
+/**
+ * `wide` is for one-chart-per-row (stacked) layouts. The viewBox is fixed, so
+ * its aspect ratio *is* the rendered geometry: a 600-wide box stretched across
+ * a ~1036px row would be upscaled 1.7x (fat strokes, oversized labels) and
+ * would want ~310px of height, while a 1100-wide box lands at ~1:1 scale and
+ * ~170px tall. Widening the box — rather than capping height in CSS — is what
+ * lets the chart fill the row *and* stay short; capping height on a fixed
+ * aspect ratio caps the width too.
+ */
+export type ChartVariant = "default" | "wide";
+
 interface ActivityLineChartProps {
   title: string;
   points: ActivityPoint[];
+  variant?: ChartVariant;
 }
 
-const WIDTH = 600;
+const VIEWBOX_WIDTH: Record<ChartVariant, number> = { default: 600, wide: 1100 };
 const HEIGHT = 180;
 const PADDING_LEFT = 34;
 const PADDING_RIGHT = 12;
@@ -21,11 +33,12 @@ function niceMax(value: number): number {
   return step * magnitude;
 }
 
-export function ActivityLineChart({ title, points }: ActivityLineChartProps) {
+export function ActivityLineChart({ title, points, variant = "default" }: ActivityLineChartProps) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const width = VIEWBOX_WIDTH[variant];
 
   const chart = useMemo(() => {
-    const plotWidth = WIDTH - PADDING_LEFT - PADDING_RIGHT;
+    const plotWidth = width - PADDING_LEFT - PADDING_RIGHT;
     const plotHeight = HEIGHT - PADDING_TOP - PADDING_BOTTOM;
     const maxValue = niceMax(Math.max(0, ...points.map((p) => p.value)));
 
@@ -38,7 +51,7 @@ export function ActivityLineChart({ title, points }: ActivityLineChartProps) {
       points.length > 0 ? `${linePath} L ${xFor(points.length - 1)} ${yFor(0)} L ${xFor(0)} ${yFor(0)} Z` : "";
 
     return { xFor, yFor, linePath, areaPath, yTicks: [0, maxValue / 2, maxValue] };
-  }, [points]);
+  }, [points, width]);
 
   if (points.length === 0) {
     return (
@@ -53,7 +66,7 @@ export function ActivityLineChart({ title, points }: ActivityLineChartProps) {
 
   function handlePointerMove(e: React.PointerEvent<SVGSVGElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
-    const relX = ((e.clientX - rect.left) / rect.width) * WIDTH;
+    const relX = ((e.clientX - rect.left) / rect.width) * width;
     let nearest = 0;
     let nearestDist = Infinity;
     points.forEach((_, i) => {
@@ -72,7 +85,7 @@ export function ActivityLineChart({ title, points }: ActivityLineChartProps) {
       <div className="activity-chart-wrap">
         <svg
           className="activity-chart"
-          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+          viewBox={`0 0 ${width} ${HEIGHT}`}
           role="img"
           aria-label={title}
           onPointerMove={handlePointerMove}
@@ -82,7 +95,7 @@ export function ActivityLineChart({ title, points }: ActivityLineChartProps) {
             <g key={tick}>
               <line
                 x1={PADDING_LEFT}
-                x2={WIDTH - PADDING_RIGHT}
+                x2={width - PADDING_RIGHT}
                 y1={chart.yFor(tick)}
                 y2={chart.yFor(tick)}
                 className="chart-gridline"
@@ -131,7 +144,7 @@ export function ActivityLineChart({ title, points }: ActivityLineChartProps) {
         </svg>
 
         {hovered && hoverIndex !== null && (
-          <div className="chart-tooltip" style={{ left: `${(chart.xFor(hoverIndex) / WIDTH) * 100}%` }}>
+          <div className="chart-tooltip" style={{ left: `${(chart.xFor(hoverIndex) / width) * 100}%` }}>
             <strong>{hovered.value.toLocaleString()}</strong>
             <span>{hovered.label}</span>
           </div>

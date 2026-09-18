@@ -29,4 +29,6 @@ As of the last check, this compose stack (and `nginx/default.conf`) had **never 
 docker compose up --build
 ```
 
-Then check: `http://localhost:8080` loads the app, `http://localhost:8080/trades` returns JSON, and a browser tab shows live updates when a trade is created/amended/cancelled from another tab (confirms the `/ws` proxy path works, not just the HTTP routes).
+Then check: `http://localhost:8080` loads the app, `http://localhost:8080/api/trades` returns JSON (401 without a token — that's correct, log in first or send a bearer token), `http://localhost:8080/positions` loads the positions **page** and survives a hard refresh, and a browser tab shows live updates when a trade is created/amended/cancelled from another tab (confirms the `/ws` proxy path works, not just the HTTP routes).
+
+Note the URL split, it's load-bearing: the API is reserved under `/api/*` and the SPA owns the entire root namespace. A bare `http://localhost:8080/trades` correctly serves the app shell, *not* JSON — that isn't a bug. This exists because a per-resource API location (`/positions`) once collided with the SPA route of the same name and made that page unreachable in containers.

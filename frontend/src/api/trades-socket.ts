@@ -1,4 +1,5 @@
 import type { Trade } from "../types/trade";
+import { getAuthToken } from "./auth-token";
 
 export type TradeEventType = "trade.created" | "trade.amended" | "trade.cancelled";
 
@@ -16,7 +17,12 @@ export function subscribeToTradeEvents(onEvent: (event: TradeEvent) => void): ()
   let stopped = false;
 
   function connect() {
-    socket = new WebSocket(WS_URL);
+    // Read the token fresh on every (re)connect attempt, not hoisted to the
+    // outer closure, so a token that changes (login/logout) after the first
+    // connect is picked up on the next reconnect rather than going stale.
+    const token = getAuthToken();
+    const url = token ? `${WS_URL}?token=${encodeURIComponent(token)}` : WS_URL;
+    socket = new WebSocket(url);
     socket.addEventListener("message", (message) => {
       try {
         onEvent(JSON.parse(message.data as string) as TradeEvent);

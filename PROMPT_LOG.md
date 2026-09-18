@@ -115,3 +115,51 @@ A representative sample of significant prompts and outcomes from this session, n
 **Prompt:** "call the orchestrator, tell him to work with our agent-teams to review the code"
 
 **Outcome:** Dispatched two parallel reviews using the `general-purpose`-plus-embedded-role workaround: one carrying `qa-engineer`'s rules (functional correctness, test/type/lint status, requirements-vs-rubric gaps), one carrying the new `ux-reviewer`'s rules (usability audit of the actual UI). Launched in the same message so they run concurrently — the closest approximation of the documented "parallel code review" pattern available in this environment.
+
+---
+
+**Prompt:** "i want a page where i could see the graph per Symbol" / "it would also be nice if i could search for symbol or trader, what i mean is search partially, and there is a suggestion on a dropdown on the textbox" / "it would also be nice that per row of each symbol there is a small graph"
+
+**Outcome:** Three asks that arrived while work was already in flight, handled as one coordinated pass. The app had no router at all (`App.tsx` rendered one page directly), so this added `react-router-dom` with `/` and `/symbols/:symbol?`. Split the work by file ownership: a backend change (exact-match → case-insensitive `LIKE '%…%'` substring search, with `%`/`_`/`\` escaped so a literal wildcard in a search box can't behave as a wildcard) ran in parallel with the frontend work, since they touch disjoint trees. The two later asks were sent to the *already-running* frontend agent as amendments rather than spawned as new agents — two agents editing `index.css` and `TradeTable.tsx` concurrently would have clobbered each other. Delivered: `SymbolPage`, a debounced (300ms) suggestion-dropdown search, a per-row price sparkline with one series computed per distinct symbol (not per row), and click-through from the dashboard's "Volume by Symbol" bars into the per-symbol page.
+
+---
+
+**Prompt:** "add a graph OHLC chart"
+
+**Outcome:** Derived OHLC bars from individual trade executions (the data model has no candle data) by reusing the existing adaptive hour/day/week bucketing, extracted into shared `pickGranularity`/`bucketingFor` helpers rather than a third copy of that logic. Replaced — rather than added alongside — the plain price-trend line on the symbol page, since OHLC is strictly the richer view of the same series; the tiny table sparkline kept the simple line, where a candlestick would be illegible at 60×24px.
+
+---
+
+**Prompt:** "would it be better if we have a team-lead agent, that identifies how a request can be divided to different agents… then pass it to QA… then the team lead reviews the code based on the claude docs"
+
+**Outcome:** Agreed with the *workflow*, pushed back on the *mechanism*. A team-lead subagent would be strictly worse than the session itself acting as lead: it would run once, dispatch, and have no way to wait for async completions and react — which is exactly what the lead must do. Claude Code's own docs say the lead is always the live session and can't be delegated. Wrote the four-step flow (split → dispatch or amend-in-flight → verify-don't-trust → review-against-docs) into `.claude/docs/agent-team-workflow.md` as a standing procedure instead.
+
+---
+
+**Prompt:** "lets do the bonus ideas" → all four selected, with "Think properly how we will do this in the code. we should be aware in the folder structure and clean architechture"
+
+**Outcome:** The explicit ask for architectural rigour made this the one task worth planning before coding. Used plan mode: explored the existing backend conventions in depth, then designed all four features against them, then got sign-off before writing any code. Key fixed decisions: audit trail as one row per amend/cancel event with a JSON field-diff (not a row per field), reached through a narrow `AuditLogger` interface mirroring the existing `Broadcaster` seam; positions and P&L as one cohesive read-model module with **FIFO lot-matching** and unrealized P&L marked to the symbol's last trade price (an explicitly documented proxy — the app has no market-data feed); auth as a login *gate*, not per-user authorization, with `node:crypto` scrypt hashing to avoid a native `bcrypt` dependency. Implemented in three sequenced passes (Auth last, because it wraps routers that had to exist first), each independently re-verified before the next began. Backend tests 19 → 80, frontend 52 → 76.
+
+---
+
+**Prompt:** "have we updated the readme?" / "i think the read should know about the default credentials"
+
+**Outcome:** The README hadn't just gone stale, it had become actively false — still claiming "no authentication — out of scope here" and "No audit trail, position summary, P&L view, or authentication" after all four had shipped. Corrected those, documented the demo credentials prominently (a reviewer would otherwise hit the login wall with nothing to type), and refreshed counts/endpoints/assumptions. Checking the Docker section surfaced a real bug rather than a docs one: nginx proxied only `/trades`, `/health`, `/ws`, so `POST /auth/login` fell through to the SPA and **login was completely broken under Docker Compose**.
+
+---
+
+**Prompt:** "can we also add a pipeline on git for uni test, linter, build test"
+
+**Outcome:** GitHub Actions workflow running tests, type-check, lint and build for both packages as parallel matrix jobs, pinned to Node 24 (mandatory — `node:sqlite` doesn't exist on older runtimes, and a silent drift to the default runner Node would fail the backend confusingly). Added matching `typecheck` scripts so CI calls one consistent command per package.
+
+---
+
+**Prompt:** "can you check the lint"
+
+**Outcome:** Measured rather than assumed, by planting an identical probe file (a `debugger` statement plus an unused variable) in each package: backend eslint reports `debugger` as an **error** and exits 1; frontend oxlint reports it as a **warning** and exits 0, because `.oxlintrc.json` sets only `react/rules-of-hooks` to error severity. So the frontend lint step in CI is effectively decorative — a `debugger` could be committed and CI would stay green. Also caught a methodology error of my own: earlier exit codes had been read through a `| tail` pipe, which reports the pipe's last command, not the linter's.
+
+---
+
+**Prompt:** "can you review everything and check if we have covered everything" → "fix it"
+
+**Outcome:** Ran `qa-engineer` (spec/rubric audit) and `ux-reviewer` (usability audit) concurrently, both read-only, plus a manual pass on the deliverable docs. Between them: the UX audit found the app has **zero `@media` rules** despite "responsiveness" being named in the rubric, a modal with no keyboard escape, no success feedback on any mutation, and that a chart-height cap added earlier was letterboxing the full-width charts (a regression from my own fix, applied globally when it should have been scoped). The QA audit independently found that the `/positions` nginx route I'd added *collided with the SPA route of the same name*, making that page unreachable under Docker, and that the frontend Docker image has no SPA history fallback, so any deep link 404s. Both classes of bug were invisible locally — Docker isn't installed on this machine — and were fixed by prefixing the whole API under `/api` at the proxy rather than patching another special case.

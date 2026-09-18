@@ -15,7 +15,7 @@ Read `.claude/docs/spec.md` (functional/non-functional requirements) and `.claud
 1. Backend: from `backend/`, `npm test && npx tsc -p tsconfig.json --noEmit && npx eslint src`.
 2. Frontend: from `frontend/`, `npm test && npx tsc -b && npx oxlint src`.
 3. Cross-cutting behavior unit tests can't catch: start the backend (and frontend dev server, or `docker compose up --build` if Docker is available), and confirm from two independent WebSocket/browser clients that a create/amend/cancel from one is visible on the other without a refresh — this is the actual "real-time" requirement, not just that broadcaster code exists.
-4. If Docker is available: `docker compose up --build`, then confirm `http://localhost:8080` loads, `/trades` returns JSON, and `/ws` proxies correctly (see devops-engineer.md for what "correctly" means here).
+4. If Docker is available: `docker compose up --build`, then confirm `http://localhost:8080` loads, `/api/trades` returns JSON (401 unauthenticated is correct), `/positions` loads the positions **page** and survives a hard refresh, and `/ws` proxies correctly (see devops-engineer.md for what "correctly" means here). The API sits under `/api/*` and the SPA owns the root namespace — a bare `/trades` serving the app shell instead of JSON is by design, not a regression.
 5. Compare the shipped `Trade` shape and API surface against the rubric — engineering quality + TypeScript usage + full-stack design are 70% of the score combined, so flag gaps there before polish nits.
 
 ## Reporting

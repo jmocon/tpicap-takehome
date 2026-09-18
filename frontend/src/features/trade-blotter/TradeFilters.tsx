@@ -1,32 +1,43 @@
+import { useMemo } from "react";
 import type { TradeQuery } from "../../api/trades-api";
+import type { Trade } from "../../types/trade";
+import { FilterSuggestInput } from "./FilterSuggestInput";
 
 interface TradeFiltersProps {
   filters: TradeQuery;
+  // The currently-loaded trades — used only to derive the Symbol/Trader
+  // suggestion dropdowns client-side, no extra API call.
+  trades: Trade[];
   onChange: (filters: TradeQuery) => void;
   onRefresh: () => void;
   refreshing: boolean;
 }
 
-export function TradeFilters({ filters, onChange, onRefresh, refreshing }: TradeFiltersProps) {
+export function TradeFilters({ filters, trades, onChange, onRefresh, refreshing }: TradeFiltersProps) {
+  const symbols = useMemo(() => trades.map((t) => t.symbol), [trades]);
+  const traders = useMemo(() => trades.map((t) => t.trader), [trades]);
+
   function updateFilter<K extends keyof TradeQuery>(key: K, value: string) {
     onChange({ ...filters, [key]: value || undefined });
   }
 
   return (
     <div className="trade-filters">
-      <input
-        type="text"
+      <FilterSuggestInput
         className="filter-symbol"
         placeholder="Symbol"
+        ariaLabel="Symbol"
         value={filters.symbol ?? ""}
-        onChange={(e) => updateFilter("symbol", e.target.value)}
+        candidates={symbols}
+        onCommit={(value) => updateFilter("symbol", value)}
       />
-      <input
-        type="text"
+      <FilterSuggestInput
         className="filter-trader"
         placeholder="Trader"
+        ariaLabel="Trader"
         value={filters.trader ?? ""}
-        onChange={(e) => updateFilter("trader", e.target.value)}
+        candidates={traders}
+        onCommit={(value) => updateFilter("trader", value)}
       />
       <select value={filters.side ?? ""} onChange={(e) => updateFilter("side", e.target.value)}>
         <option value="">All sides</option>

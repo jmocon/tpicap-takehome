@@ -5,6 +5,9 @@ services:
       PORT: 4000
       DATABASE_FILE: /app/data/trades.db
       CORS_ORIGIN: http://localhost:8080
+      # Demo-only value so the stack runs out of the box. A real deployment
+      # supplies this from a secret store, not a checked-in compose file.
+      JWT_SECRET: ${JWT_SECRET:-dev-only-compose-secret-change-me}
     volumes:
       - trades-data:/app/data
 
@@ -12,14 +15,18 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_API_BASE_URL: http://localhost:8080
+        # Baked in at build time (Vite inlines import.meta.env), so changing
+        # either of these needs a rebuild, not just a restart.
+        # The /api prefix is stripped by the proxy — see nginx/default.conf.
+        VITE_API_BASE_URL: http://localhost:8080/api
         VITE_WS_URL: ws://localhost:8080/ws
     depends_on:
       - backend
 
-  # Single entry point: proxies /trades, /health and /ws to backend, everything
-  # else to frontend. Only this service publishes a host port — backend and
-  # frontend are reachable only inside the compose network.
+  # Single entry point: proxies /api/* and /ws to the backend, everything else
+  # to the frontend (which owns the whole root namespace, SPA routes included).
+  # Only this service publishes a host port — backend and frontend are
+  # reachable only inside the compose network.
   proxy:
     image: nginx:alpine
     ports:

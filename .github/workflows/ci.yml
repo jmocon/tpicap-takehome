@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    # backend/ and frontend/ are two independent npm projects (no root package.json,
+    # no workspaces), so each gets its own job: parallel, and a red X names the side
+    # that broke. fail-fast is off so one failure doesn't hide the other side's result.
+    name: ${{ matrix.package }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [backend, frontend]
+    defaults:
+      run:
+        working-directory: ${{ matrix.package }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          # Node 24+ is mandatory: the backend persists via the built-in `node:sqlite`
+          # module, which does not exist on older Node. Pinned explicitly so CI can
+          # never silently drift onto an older runtime.
+          node-version: '24'
+          cache: npm
+          # `defaults.run.working-directory` does not apply to action steps, so this
+          # path stays relative to the repo root.
+          cache-dependency-path: ${{ matrix.package }}/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Type-check
+        # backend: `tsc -p tsconfig.json --noEmit`; frontend: `tsc -b` (project refs).
+        # Both are wrapped behind a `typecheck` script so this stays one command.
+        run: npm run typecheck
+
+      - name: Lint
+        # backend: eslint; frontend: oxlint. Both exit non-zero on error-severity
+        # findings and zero on warnings, so the one known frontend Fast Refresh
+        # warning (AuthContext.tsx) does not fail the build.
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
