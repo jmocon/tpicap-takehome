@@ -1,0 +1,72 @@
+[
+  {
+    "id": "TRD-100001",
+    "symbol": "AAPL",
+    "side": "BUY",
+    "quantity": 5000,
+    "price": 227.45,
+    "trader": "JSMITH",
+    "book": "EQUITIES_UK",
+    "counterparty": "Goldman Sachs",
+    "trade_date": "2026-08-18T09:15:23Z",
+    "status": "ACTIVE",
+    "created_at": "2026-09-17T23:24:29.611Z",
+    "updated_at": "2026-09-17T23:24:29.611Z"
+  },
+  {
+    "id": "TRD-100002",
+    "symbol": "MSFT",
+    "side": "SELL",
+    "quantity": 1200,
+    "price": 534.22,
+    "trader": "ABROWN",
+    "book": "EQUITIES_US",
+    "counterparty": "JP Morgan",
+    "trade_date": "2026-08-18T09:18:54Z",
+    "status": "ACTIVE",
+    "created_at": "2026-09-17T23:24:29.611Z",
+    "updated_at": "2026-09-17T23:24:29.611Z"
+  },
+  {
+    "id": "TRD-100003",
+    "symbol": "TSLA",
+    "side": "BUY",
+    "quantity": 800,
+    "price": 341.75,
+    "trader": "MJONES",
+    "book": "TECH_GROWTH",
+    "counterparty": "Morgan Stanley",
+    "trade_date": "2026-08-18T09:20:11Z",
+    "status": "CANCELLED",
+    "created_at": "2026-09-17T23:24:29.611Z",
+    "updated_at": "2026-09-17T23:24:29.611Z"
+  },
+  {
+    "id": "TRD-100004",
+    "symbol": "GOOGL",
+    "side": "BUY",
+    "quantity": 2500,
+    "price": 178.9,
+    "trader": "KLEE",
+    "book": "EQUITIES_US",
+    "counterparty": "Barclays",
+    "trade_date": "2026-08-18T10:02:47Z",
+    "status": "ACTIVE",
+    "created_at": "2026-09-17T23:24:29.611Z",
+    "updated_at": "2026-09-17T23:24:29.611Z"
+  },
+  {
+    "id": "TRD-100005",
+    "symbol": "NVDA",
+    "side": "SELL",
+    "quantity": 600,
+    "price": 128.35,
+    "trader": "RPATEL",
+    "book": "TECH_GROWTH",
+    "counterparty": "Citi",
+    "trade_date": "2026-08-18T10:11:02Z",
+    "status": "ACTIVE",
+    "created_at": "2026-09-17T23:24:29.611Z",
+    "updated_at": "2026-09-17T23:24:29.611Z"
+  }
+]

@@ -1,0 +1,39 @@
+# AI Usage Report
+
+## Tools used
+
+**Claude Code** (Sonnet 5), used as the primary and only development tool for this exercise — no other AI coding assistant was used. Both the planning/documentation phase and the full implementation (backend, frontend, Docker, tests, this report) were done through it in one continuous session.
+
+## How it was used
+
+The work happened in two distinct phases:
+
+1. **Planning, interactively, over many small turns.** Before any code was written, the assessment PDF was fed in and Claude was asked to turn it into working documents: `CLAUDE.md` plus a `.claude/docs/` folder (spec extraction, deliverables/grading breakdown, a proposed folder structure, a progress checklist, and a list of things only a human could do — accounts, `git`/Docker issues on this machine, etc.). The folder structure in particular went through several rounds of pushback before implementation started: questioning why `realtime/` was split from `trades/`, whether `features/` was the right name when there was nowhere for "pages," why tests weren't colocated with the files they test, and whether `trade-blotter`/`trade-form` should follow Atomic Design. Each round, Claude explained the reasoning and the doc was revised or the reasoning was accepted before moving on.
+2. **Autonomous build, in the background.** Once the plan was solid, Claude was told to build the entire app end-to-end without further check-ins (the session owner was stepping away), make the remaining implementation-level calls itself, and leave a clear log of every decision for review. It scaffolded `backend/` and `frontend/`, wrote all source files, installed dependencies, ran the test suites and builds, fixed the failures it hit along the way, wrote Dockerfiles and `docker-compose.yml`, generated the seed-data samples, wrote the README, and finally ran a self-review pass (`/simplify`, four parallel review agents each focused on one angle — reuse, simplification, efficiency, altitude) against its own output and applied the fixes.
+
+## Example prompts
+
+- *"do the claude documents here"* → produced the initial `CLAUDE.md` + `.claude/docs/` structure from the PDF (see Prompt Log for the follow-up refinements).
+- *"can we have a doc for folder structure for frontend and backend"* → a proposed layout with an explicit stack choice (Express, `node:sqlite`, native WebSockets, Vite+React), stated as assumptions that could be overridden.
+- *"why do we have a folder 'trades' and 'realtime'?"* → Claude explained the testability rationale (service depends on a `Broadcaster` interface, not the WS server directly) and offered to fold them together since the app only has one domain; the user chose to keep them separate but wanted the naming sanity-checked.
+- *"it feels like features are not the correct folder we are looking for. i can't even see where the pages are / also, why are the test not beside the file?"* → added a `pages/` folder and switched from a mirrored `test/` tree to colocated tests, with reasoning for both.
+- *"ill be sleeping, so if there are things we should be checking. decide for me... make sure u use /simplify... make sure you check for duplicate codes... create an MD on how i can run it"* → triggered the autonomous build phase: full implementation, the `/simplify` self-review pass, and this session's README.
+
+## Key decisions influenced by AI
+
+- **`node:sqlite` over `better-sqlite3`**: Claude's own call, verified experimentally (checked the installed Node version supports it without flags) before committing, specifically because the brief requires the app to run on Windows/Linux/Mac and `better-sqlite3`'s native compilation step is a real cross-platform risk that a zero-dependency built-in module avoids entirely.
+- **Consolidating `CreateTradeForm`/`AmendTradeForm` into one `TradeForm`**: the originally planned folder structure had two separate form files; while implementing, Claude recognized they'd be near-identical and merged them into one component parametrized by an optional `initialTrade` prop, then updated the planning doc to match reality rather than leaving it stale.
+- **Vitest over Jest** for both frontend and backend, and upgrading `vitest`/`vite` mid-build after the initially-installed versions (vitest 2.1.9 / vite 5.4.21) failed to resolve `node:sqlite` at all — Claude diagnosed this as the bundled vite-node's builtin-module allowlist predating that API, and fixed it by upgrading rather than working around it with a config hack.
+
+## Where AI-generated suggestions were accepted or rejected
+
+**Accepted, after pushback that improved the result:**
+- Folding two form components into one (see above) — accepted as a better design once flagged.
+- Moving from a mirrored `test/` directory to colocated `*.test.ts` files, and splitting `pages/` out of `features/` — both were direct user corrections to Claude's first draft, both accepted and applied.
+- All four `/simplify` findings that were genuine duplication or waste (shared SQL/ID-generation helpers, a single `UPDATE ... RETURNING` instead of three separate queries per amend/cancel, dropping an unnecessary repository test-double interface in favor of testing against a real in-memory DB) were accepted and applied.
+
+**Rejected / consciously not applied**, each with a stated reason rather than silently ignored:
+- Full Atomic Design methodology for `components/` — rejected because it has no natural home for the hooks and validation logic that live alongside a feature's components; a lighter `components/ui/` split was offered as a middle ground but ultimately left flat since a two-screen app doesn't yet have enough shared primitives to justify it.
+- `/simplify`'s suggestion to add `React.memo`/`useCallback` throughout the trade table and page — rejected as premature optimization at this app's scale (a non-virtualized ~300-row table re-renders about the same either way).
+- `/simplify`'s suggestion to unify the frontend's hand-written form validation with the backend's zod schemas — rejected because they run in different runtimes and the backend is meant to be the actual integrity boundary regardless of what the client does; documented as an intentional trade-off in the README rather than "fixed."
+- Sharing `Trade`/event types between frontend and backend via a monorepo package — considered and explicitly rejected as unnecessary overhead for this exercise's scope; documented as an accepted trade-off (manual sync) in the README instead.
