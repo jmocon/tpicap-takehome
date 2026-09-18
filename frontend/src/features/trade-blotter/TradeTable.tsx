@@ -52,18 +52,23 @@ export function TradeTable({ trades, sortBy, sortDir, onSortChange, onAmend, onC
             <tr key={trade.id} className={isCancelled ? "row-cancelled" : ""}>
               <td>{trade.symbol}</td>
               <td>{trade.trader}</td>
-              <td>{trade.quantity.toLocaleString()}</td>
-              <td>{trade.price.toFixed(2)}</td>
+              <td className="cell-quantity">{trade.quantity.toLocaleString()}</td>
+              <td className="cell-price">{trade.price.toFixed(2)}</td>
               <td>{new Date(trade.tradeDate).toLocaleString()}</td>
               <td>{trade.status}</td>
               <td>
                 <span className={`side-badge side-${trade.side.toLowerCase()}`}>{trade.side}</span>
               </td>
               <td className="row-actions">
-                <button type="button" onClick={() => onAmend(trade)} disabled={isCancelled}>
+                <button type="button" className="btn-secondary" onClick={() => onAmend(trade)} disabled={isCancelled}>
                   Amend
                 </button>
-                <button type="button" onClick={() => onCancel(trade)} disabled={isCancelled}>
+                <button
+                  type="button"
+                  className="btn-ghost-danger"
+                  onClick={() => onCancel(trade)}
+                  disabled={isCancelled}
+                >
                   Cancel
                 </button>
               </td>

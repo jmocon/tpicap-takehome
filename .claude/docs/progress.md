@@ -32,7 +32,11 @@ Tracks what's actually done vs. outstanding. Update this whenever a milestone la
 - [x] Amend trade form — consolidated into one mode-agnostic `TradeForm` component (create vs. amend differs only by whether a trade is passed in), not two near-duplicate forms
 - [x] Cancel trade action
 - [x] Live updates via WebSocket subscription (merges into list state by trade id)
-- [x] Component/hook tests (18 tests, all passing)
+- [x] UX polish: button hierarchy (one primary action per view), data hierarchy in the table (quantity/price bolded over muted labels), context-aware field sizing in the trade form, progressive disclosure for optional book/counterparty fields, proximity grouping, hover/focus states
+- [x] Trade analytics panel (buy/sell volume, volume by symbol, trade activity over time) — client-side aggregation of the already-loaded/filtered trade list, no new API surface
+- [x] "Simulate Trade" demo button — generates one random BUY/SELL trade client-side and submits it through the existing create endpoint, for live cross-client demoing without any backend changes
+- [x] "Auto Simulate" toggle + frequency select next to "Simulate Trade" — fires the same simulated-trade path on a repeating interval for an unattended live demo
+- [x] Component/hook tests (36 tests, all passing)
 
 ### Deliverables
 - [x] README.md (architecture, install, run, test, assumptions, trade-offs)
@@ -43,6 +47,57 @@ Tracks what's actually done vs. outstanding. Update this whenever a milestone la
 ## Log
 
 Append one entry per work session, newest at the top.
+
+### 2026-09-18 — doc refresh + `ux-reviewer` agent + parallel code review
+User asked "did we cover all in the [PDF]?" — re-checked the brief page-by-page against actual repo state. Findings:
+- **The GitHub repo (`origin/main`) was a full session behind disk.** Nothing after the initial push had been committed — this session's UX polish, trade analytics, Simulate Trade/Auto Simulate, and agent-team setup all existed only on disk. Fixed by this entry's commit/push.
+- **README, AI_USAGE_REPORT, PROMPT_LOG, CLAUDE.md, and action-items-for-you.md had all gone stale** — none mentioned anything past the original autonomous build session (wrong test counts, missing features, resolved blockers still listed as open). Refreshed all five.
+- Docker is still the one open core-requirement gap: still not installed on this machine, `docker-compose.yml`/nginx still never run end-to-end.
+
+Also added `.claude/agents/ux-reviewer.md` (5th subagent role) per user request: a read-only usability auditor that judges whether a piece of UI is good for the user and suggests a concrete alternative, scoped against this app's own established house style (button/data hierarchy, proximity, progressive disclosure) rather than generic advice, and explicitly barred from recommending the dark patterns rejected earlier. Updated `agent-team-workflow.md`'s role table and added a "Known limitation" section documenting the confirmed platform gap (see previous entries) and the `general-purpose`-plus-embedded-role workaround now used for all delegation in this session.
+
+User then asked to "call the orchestrator... work with our agent-teams to review the code" — dispatched two `general-purpose` agents in parallel (same message, so genuinely concurrent), one carrying `qa-engineer`'s rules and one carrying `ux-reviewer`'s, mirroring the agent-teams docs' "parallel code review" use case as closely as this environment allows. Findings from that review are appended as their own log entry once both report back.
+
+### 2026-09-18 — "Auto Simulate" toggle for the demo button
+Extended the existing "Simulate Trade" one-shot demo button (see the entry below) with a continuous mode, so an unattended demo can run in the background at an adjustable frequency while talking to a client, instead of needing a click per trade.
+
+- New `frontend/src/features/trade-blotter/use-auto-simulate.ts` — a small reusable hook, `useAutoSimulate(action, intervalMs, enabled)`, that drives a repeating async action on a `setInterval` while `enabled` is true. Guards against overlapping calls with an `inFlightRef`: if the previous tick's promise hasn't resolved yet (e.g. a slow request), the next tick is skipped rather than queued. `action` is captured in a ref (assigned inside a plain `useEffect`, not during render, to avoid oxlint's `react(refs)` "no ref writes during render" rule) so callers can pass a fresh closure every render without restarting the interval; the interval itself only restarts when `intervalMs` or `enabled` changes, and is always cleared via the effect's cleanup (covers toggle-off and unmount). Colocated test file (7 tests) using `vi.useFakeTimers()` + `vi.advanceTimersByTimeAsync()`, covering: disabled = no calls, one call per interval while enabled, overlapping-call skip, a rejected call not breaking the loop, frequency change taking effect on the next tick without a restart, and cleanup on both disable and unmount.
+- `frontend/src/pages/TradeBlotterPage.tsx` — added `autoSimulating` (boolean) and `autoSimulateIntervalMs` (default 2000ms) state; `useAutoSimulate(handleSimulateTrade, autoSimulateIntervalMs, autoSimulating)` reuses the exact same trade-creation path the one-shot button already calls, so it still broadcasts over the existing WebSocket with no backend changes. Added to the header, next to "Simulate Trade": a "Start Auto"/"Stop Auto" toggle button (`aria-pressed`, and an accent-filled `.btn-toggle-on` modifier class when running, so it visually reads as "running" without borrowing `.btn-primary` — that stays reserved for the one true primary action per view, "New Trade") and a frequency `<select>` (0.5s/1s/2s/5s/10s presets, defaulting to 2s) styled like the existing filter selects. The plain "Simulate Trade" button is disabled while auto-simulate is running (`disabled={simulating || autoSimulating}`) to avoid confusing double-triggers.
+- `frontend/src/index.css` — added `.simulate-controls` (groups the three new header controls), `.header-actions select` (reuses the existing filter-select look outside `.trade-filters`), and `.btn-toggle-on` (accent background/border, matching `.btn-primary`'s hover treatment) alongside the existing `.btn-*` hierarchy comment block.
+- Verified from `frontend/`: `npm test` (36/36 passing, up from 29 — the 7 new hook tests), `npx tsc -b` clean, `npx oxlint src` clean (after moving the ref assignment into an effect — the initial render-time assignment tripped the `react(refs)` rule), `npm run build` clean.
+
+### 2026-09-18 — "Simulate Trade" demo button
+User wanted a button to demo real-time behavior live to a client: click it, one random trade appears, visible across connected clients. Implemented entirely in `frontend/`, no backend changes:
+
+- `features/trade-blotter/random-trade.ts` — new `generateRandomTrade(): CreateTradeInput` module. Draws side (BUY/SELL), symbol and trader from small frontend-local lists that mirror (but deliberately don't import) `backend/src/db/seeds/mock-seed.ts`'s lists, to keep the frontend/backend boundary clean. Quantity: 50–10,000 rounded to a step of 10. Price: $10.00–$900.00 to 2 decimal places.
+- `pages/TradeBlotterPage.tsx` — added a `handleSimulateTrade()` handler that calls the **existing** `tradesApi.create()` with the generated trade, reusing the same `actionError` state `handleCancel` already uses for failures, plus a new `simulating` boolean for a disabled/loading button state ("Simulating..."). Because it goes through the real create endpoint, the existing WebSocket broadcast + `useTrades` merge logic handles the live cross-client update for free — no new transport code needed.
+- New "Simulate Trade" button sits next to "New Trade" in the header, styled `.btn-secondary` (outlined) so "New Trade" remains the sole `.btn-primary` per the button-hierarchy convention. Added a small `.header-actions` flex wrapper in `index.css` to group the two buttons.
+- `features/trade-blotter/random-trade.test.ts` — 5 new tests: value-set membership for side/symbol/trader across many runs, quantity range + step-of-10 rounding, price range + 2-decimal rounding, and two `Math.random`-mocked boundary tests (min and max of the range) for determinism.
+- Verified: `npm test` (29/29 passing, up from 24), `npx tsc -b`, `npx oxlint src`, and `npm run build` all clean.
+
+### 2026-09-18 — UI/UX polish + trade analytics charts
+User supplied `~/Downloads/ux_psychology_ui_principles.md`, an 18-principle UX/UI reference document. It mixed legitimate usability principles with consumer growth-hacking dark patterns (fake progress, guilt-trip cancellation copy, dopamine-hook variable rewards, decoy pricing, anchoring) — the latter don't fit an institutional trading tool and were deliberately skipped after confirming with the user. Applied only the legitimate ones:
+- **Intentional button hierarchy** (`index.css`): `.btn-primary`/`.btn-secondary`/`.btn-ghost`/`.btn-ghost-danger` classes — exactly one solid-fill primary action per view (New Trade, form submit), outlined secondary (Amend, Refresh), borderless tertiary (form Cancel), and a danger-tinted ghost for the destructive row action (Cancel trade).
+- **Data hierarchy** (`TradeTable.tsx`): quantity/price cells bolded and upsized over muted, uppercase column headers — traders scan for numbers, not labels.
+- **Context-aware field sizing + proximity grouping** (`TradeForm.tsx`): Symbol/Side and Quantity/Price now sit in fixed-width rows instead of uniform full-width stacked fields; optional Book/Counterparty moved behind a `<details>` "Additional details" progressive-disclosure section (auto-open on amend when either is already set, so existing data is never hidden).
+- **Aesthetic-usability polish**: hover/focus-visible states, button/modal transitions, modal entrance animation.
+- Skipped: fake progress meters, loss-aversion cancellation framing, variable rewards, decoy pricing, anchoring — inapplicable/inappropriate for this app.
+
+Also added a **trade analytics panel** (`features/trade-analytics/`) per user request for "graphs a trader would like to see" — three charts computed client-side from the already-loaded (and already-filtered) trade list, no new API surface:
+- `RankedBarChart` (HTML/CSS bars) for Buy vs Sell volume (green/sell-red, matching the existing side-badge convention) and Volume by Symbol (single blue hue since it's a magnitude ranking, not a series-identity comparison; top 6 symbols + "Other" fold).
+- `ActivityLineChart` (inline SVG) for trade count over time, with adaptive bucketing (hourly if the data spans ≤2 days, daily ≤90 days, else weekly) and a pointer-tracked crosshair + tooltip.
+- Followed the project's `dataviz` skill: one hue for magnitude/single-series (never a rainbow), no dual-axis, rounded/thin marks, gridlines as hairlines, direct labels, hover-on-every-mark. Cancelled trades excluded from the volume charts (never represented real exposure) but included in the activity chart (still real trading activity).
+- New `trade-analytics.ts` aggregation module has its own colocated test file (6 tests) per the project's test convention.
+
+Verified: `npm test` (24/24 passing, up from 18), `npx tsc -b`, `npx oxlint src`, and `npm run build` all clean. Started the backend + frontend dev servers and confirmed the API serves seeded data and the dev server serves the updated bundle without errors — **could not visually confirm chart rendering in an actual browser**, no browser-automation tool was available this session. Left backend (`:4000`) and frontend (`:5173`) dev servers running for the user to check visually.
+
+Also set up the agent team (see entry below) in the same session, at the user's request, interleaved with this work.
+
+### 2026-09-18 — agent team setup
+User wanted the team missing `qa-engineer`/team-lead/orchestrator roles and a flow for parallel work, referencing Claude Code's agent-teams docs. Clarified there's no separate "team lead"/"orchestrator" subagent — per those docs the lead is always the interactive session itself, fixed for its lifetime, not definable as a subagent file. What was actually added:
+- `.claude/agents/qa-engineer.md` — read-only verifier (tests, type-check, lint, real-time behavior, Docker), reports findings rather than fixing them.
+- `.claude/settings.json` — `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`, so spawning `backend-engineer`/`frontend-engineer`/`devops-engineer`/`qa-engineer` by name launches them as real parallel teammates (own context, message each other, shared task list) instead of one-shot subagents.
+- `.claude/docs/agent-team-workflow.md` — the four roles' disjoint ownership (why they're safe to parallelize), example spawn prompt, and when sequencing beats parallelizing (e.g. frontend against a backend contract that hasn't landed yet).
 
 ### 2026-09-18 (evening) — autonomous build session while user was asleep
 Scaffolded and implemented the full app end-to-end, plus README. Decisions made without user sign-off (flagging for morning review):

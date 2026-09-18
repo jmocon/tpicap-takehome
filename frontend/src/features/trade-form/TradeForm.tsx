@@ -24,11 +24,12 @@ interface FormFieldProps {
   value: string;
   error?: string;
   onChange: (value: string) => void;
+  className?: string;
 }
 
-function FormField({ label, value, error, onChange }: FormFieldProps) {
+function FormField({ label, value, error, onChange, className }: FormFieldProps) {
   return (
-    <label>
+    <label className={className ? `form-field ${className}` : "form-field"}>
       {label}
       <input value={value} onChange={(e) => onChange(e.target.value)} />
       {error && <span className="field-error">{error}</span>}
@@ -85,37 +86,67 @@ export function TradeForm({ initialTrade, onSubmit, onCancel }: TradeFormProps) 
     }
   }
 
+  const hasAdditionalDetails = Boolean(initialTrade?.book || initialTrade?.counterparty);
+
   return (
     <form className="trade-form" onSubmit={handleSubmit}>
       <h2>{isAmend ? `Amend ${initialTrade!.id}` : "Create Trade"}</h2>
 
-      <FormField label="Symbol" value={values.symbol} error={errors.symbol} onChange={(v) => updateField("symbol", v)} />
+      <div className="form-row">
+        <FormField
+          className="form-field-symbol"
+          label="Symbol"
+          value={values.symbol}
+          error={errors.symbol}
+          onChange={(v) => updateField("symbol", v)}
+        />
+        <label className="form-field form-field-side">
+          Side
+          <select value={values.side} onChange={(e) => updateField("side", e.target.value as "BUY" | "SELL")}>
+            <option value="BUY">BUY</option>
+            <option value="SELL">SELL</option>
+          </select>
+        </label>
+      </div>
 
-      <label>
-        Side
-        <select value={values.side} onChange={(e) => updateField("side", e.target.value as "BUY" | "SELL")}>
-          <option value="BUY">BUY</option>
-          <option value="SELL">SELL</option>
-        </select>
-      </label>
+      <div className="form-row">
+        <FormField
+          className="form-field-qty"
+          label="Quantity"
+          value={values.quantity}
+          error={errors.quantity}
+          onChange={(v) => updateField("quantity", v)}
+        />
+        <FormField
+          className="form-field-price"
+          label="Price"
+          value={values.price}
+          error={errors.price}
+          onChange={(v) => updateField("price", v)}
+        />
+      </div>
 
-      <FormField label="Quantity" value={values.quantity} error={errors.quantity} onChange={(v) => updateField("quantity", v)} />
-      <FormField label="Price" value={values.price} error={errors.price} onChange={(v) => updateField("price", v)} />
       <FormField label="Trader" value={values.trader} error={errors.trader} onChange={(v) => updateField("trader", v)} />
-      <FormField label="Book (optional)" value={values.book} onChange={(v) => updateField("book", v)} />
-      <FormField
-        label="Counterparty (optional)"
-        value={values.counterparty}
-        onChange={(v) => updateField("counterparty", v)}
-      />
+
+      <details className="form-section" open={hasAdditionalDetails}>
+        <summary>Additional details (optional)</summary>
+        <div className="form-row">
+          <FormField label="Book" value={values.book} onChange={(v) => updateField("book", v)} />
+          <FormField
+            label="Counterparty"
+            value={values.counterparty}
+            onChange={(v) => updateField("counterparty", v)}
+          />
+        </div>
+      </details>
 
       {submitError && <p className="field-error">{submitError}</p>}
 
       <div className="form-actions">
-        <button type="button" onClick={onCancel} disabled={submitting}>
+        <button type="button" className="btn-ghost" onClick={onCancel} disabled={submitting}>
           Cancel
         </button>
-        <button type="submit" disabled={submitting}>
+        <button type="submit" className="btn-primary" disabled={submitting}>
           {submitting ? "Saving…" : isAmend ? "Save Changes" : "Create Trade"}
         </button>
       </div>

@@ -70,8 +70,8 @@ If the backend starts and finds an empty database, it automatically runs the **m
 ## Running tests
 
 ```bash
-cd backend && npm test     # vitest — 16 tests: service (business rules), repository (SQL), routes (HTTP), realtime (WS delivery)
-cd frontend && npm test    # vitest + Testing Library — 18 tests: form validation, table rendering, data-fetching hook
+cd backend && npm test     # vitest — 17 tests: service (business rules), repository (SQL), routes (HTTP), realtime (WS delivery)
+cd frontend && npm test    # vitest + Testing Library — 36 tests: form validation, table rendering, data-fetching hook, trade analytics aggregation, random-trade generator, auto-simulate hook
 ```
 
 ## Other commands
@@ -99,6 +99,12 @@ npm run lint           # oxlint
 | POST | `/trades/:id/cancel` | cancel a trade (rejected with 409 if already cancelled) |
 
 Every create/amend/cancel broadcasts a `{ type: "trade.created" | "trade.amended" | "trade.cancelled", trade }` JSON message to all connected clients on the WebSocket endpoint at `/ws` (same host/port as the HTTP API).
+
+## Beyond the core requirements
+
+- **Trade analytics panel** — three charts (buy/sell volume, volume by symbol, trade activity over time) computed client-side from the already-loaded/filtered trade list, no new API surface. Built against the repo's `dataviz` skill conventions (sequential single hue for magnitude, categorical colors reused from the existing side-badge convention, no dual-axis, hover tooltips).
+- **"Simulate Trade" / "Auto Simulate" demo controls** — a button that submits one random BUY/SELL trade through the existing `POST /trades`, plus a toggle to fire one automatically on an adjustable interval (0.5s–10s). Useful for demoing the live-update behavior to a client without manually filling in the form repeatedly. Entirely frontend-side — no backend changes, since it reuses the same create endpoint and gets the WebSocket broadcast for free.
+- **UX pass**: one primary (solid) action per view with outlined/borderless secondary and tertiary actions, bolded quantity/price over muted column labels (traders scan for numbers, not labels), context-aware field widths and progressive disclosure (optional Book/Counterparty tucked behind a details toggle) in the trade form, hover/focus states throughout.
 
 ## Assumptions
 

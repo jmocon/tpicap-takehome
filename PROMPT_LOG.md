@@ -55,3 +55,63 @@ A representative sample of significant prompts and outcomes from this session, n
 **Prompt (implicit, via the `/simplify` skill's own instructions rather than free text):** "Review the changed code for reuse, simplification, efficiency, and altitude issues... apply the fixes."
 
 **Outcome:** Four parallel review passes surfaced: duplicated trade-ID generation and INSERT SQL across the repository and both seed scripts (extracted shared helpers); a duplicated sortable-fields list in three places (unified to one export); three sequential SQL queries per amend/cancel where one `UPDATE ... RETURNING` would do (rewrote, after confirming `node:sqlite` supports `RETURNING`); an unnecessary repository test-double interface (`TradesRepositoryPort`) duplicating logic already covered by real repository tests (removed, tests now run against a real in-memory DB); an unsafe type cast in the error handler (fixed by adding the field to the base error class); and several frontend duplication/complexity issues (a pointless `JSON.stringify`/`parse` round-trip, four copy-pasted filter `onChange` handlers, six copy-pasted form field blocks, a duplicated test fixture). All applied; findings judged to be intentional trade-offs rather than defects (e.g., client/server validation duplication, no shared types package) were left as-is with reasons recorded.
+
+---
+
+**Prompt:** "here is the repository / here is the ssh key / push the code to the git"
+
+**Outcome:** Before pushing, checked `.gitignore` and found it only excluded `.DS_Store` — would have committed `frontend/node_modules` + `backend/node_modules` (~227MB) and left no protection for future `.env` files. Fixed it, added the SSH key to the agent, verified GitHub auth, staged/reviewed the diff for secrets, committed, and pushed to `git@github.com:jmocon/tpicap-takehome.git`.
+
+---
+
+**Prompt:** "lets consider this /Users/.../ux_psychology_ui_principles.md" → "i want us to use that document to enhance our ui ux"
+
+**Outcome:** Read the 18-principle document; flagged that roughly half (fake progress meters, loss-aversion cancellation framing, variable rewards, decoy pricing, anchoring) are consumer growth-hacking dark patterns unsuited to an institutional trading tool, and asked which way to go before touching code. User chose "apply the legit ones." Implemented button hierarchy, data hierarchy in the table, context-aware field sizing + progressive disclosure in the form, and aesthetic-usability polish (hover/focus states, transitions) — all in `frontend/src/index.css` and the components it styles.
+
+---
+
+**Prompt:** "i want to also see a graph" → "all kinds of graphs that a trader would like to see"
+
+**Outcome:** Loaded the repo's `dataviz` skill before writing any chart code. Built `frontend/src/features/trade-analytics/` — a client-side aggregation module (`trade-analytics.ts`, with its own test file) plus two chart components (`RankedBarChart` for buy/sell volume and volume-by-symbol; `ActivityLineChart`, an inline-SVG line chart with adaptive hour/day/week bucketing and a hover crosshair+tooltip), composed into a `TradeAnalytics` panel on the main page. Followed the skill's rules: sequential single hue for magnitude, buy/sell colors reused from the existing side-badge convention rather than generic categorical hues, no dual-axis, direct labels, hover on every mark.
+
+---
+
+**Prompt:** "i can see that we have backend engineer, devops, and frontend agents, but i can't see the teamlead and qa, also create a orchestrator for it. we want to be able to have a flow for them, where some can work in parallel" (with a link to Claude Code's agent-teams docs)
+
+**Outcome:** Fetched the linked docs. Explained that "team lead"/"orchestrator" isn't a definable subagent — the lead is always whichever session is being driven, fixed for its lifetime, not promotable or delegable. Added the missing `qa-engineer` subagent (`.claude/agents/qa-engineer.md`, read-only verifier), enabled agent teams (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in `.claude/settings.json`), and wrote `.claude/docs/agent-team-workflow.md` documenting the roles and when to parallelize.
+
+---
+
+**Prompt:** "i want a functionality, where i could click a button that will add random buy and sell, this is for me to demonstrate to the client. use our orchestrator for this"
+
+**Outcome:** Recognized this needed frontend changes only (the existing `POST /trades` already validates/persists/broadcasts, so a client-generated random trade gets live updates for free) — routed it to just a `frontend-engineer`-role delegation rather than spawning uninvolved roles. The `Agent` tool rejected `subagent_type: "frontend-engineer"` outright (`Agent type 'frontend-engineer' not found`), revealing none of the four project subagents were recognized in this session, not just this one. Filed a bug report (queued locally, not sent without explicit approval) and worked around it with a `general-purpose` agent carrying the role's rules pasted into its prompt. Delivered `random-trade.ts` + a "Simulate Trade" button; independently re-verified (not just trusted the sub-agent's own report) by re-running tests/typecheck/lint myself and confirming live over a raw WebSocket client that a create broadcasts exactly as the button would trigger.
+
+---
+
+**Prompt:** "good job on the simulate trade, maybe add a button attached to it that could trigger it continuosly where the frequecy can be changed"
+
+**Outcome:** Same delegation pattern (frontend-only, `general-purpose` + embedded `frontend-engineer` rules). Delivered `use-auto-simulate.ts` (interval hook, overlap-guarded via an in-flight ref, cleans up on toggle-off/unmount) plus a "Start Auto"/"Stop Auto" toggle and a frequency `<select>` (0.5s–10s, default 2s). Independently re-verified tests/typecheck/lint/build and reviewed the diff before reporting it done.
+
+---
+
+**Prompt:** "fix the agent-teams"
+
+**Outcome:** Investigated whether the subagent-type rejection was fixable from the repo side (frontmatter format, settings.json placement/timing) and concluded it isn't — it's a structural gap in this session's `Agent` tool (no `name` parameter for addressable teammates at all, plus the fixed `subagent_type` list), not a repo misconfiguration. Declined to fabricate a fix; explained precisely what was and wasn't within reach, and pointed at `/feedback` as the actual path to a fix.
+
+---
+
+**Prompt:** "did we cover all in the [PDF]?"
+
+**Outcome:** Re-read the brief page-by-page against actual repo state. Found the GitHub repo was a full session behind disk (nothing after the initial push had been committed — 8 modified + 7 new files sitting uncommitted), and that README/AI_USAGE_REPORT/PROMPT_LOG/CLAUDE.md/action-items-for-you had all gone stale relative to the session's actual work. Refreshed all five docs (this entry included) before committing/pushing.
+
+---
+
+**Prompt:** "lets have an agent that finds things we should update in the UI. it determines if a part of the UI is good for the user or not, it also suggest what to change and what kind of approach is better"
+
+**Outcome:** Added `.claude/agents/ux-reviewer.md` — a read-only usability auditor, judged against the house style already established in `index.css` (button/data hierarchy, proximity grouping, progressive disclosure) rather than generic best practices, and explicitly barred from recommending the dark patterns rejected earlier in this log.
+
+---
+
+**Prompt:** "call the orchestrator, tell him to work with our agent-teams to review the code"
+
+**Outcome:** Dispatched two parallel reviews using the `general-purpose`-plus-embedded-role workaround: one carrying `qa-engineer`'s rules (functional correctness, test/type/lint status, requirements-vs-rubric gaps), one carrying the new `ux-reviewer`'s rules (usability audit of the actual UI). Launched in the same message so they run concurrently — the closest approximation of the documented "parallel code review" pattern available in this environment.

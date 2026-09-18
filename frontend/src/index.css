@@ -1,12 +1,33 @@
 :root {
   color-scheme: light dark;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --text-primary: #e6e6e6;
+  --text-secondary: #a8adba;
+  --text-muted: #6b7280;
+  --surface-0: #0f1115;
+  --surface-1: #16181f;
+  --surface-2: #1b1e26;
+  --border: #333;
+  --border-subtle: #262a33;
+  --accent: #3987e5;
+  --accent-hover: #5598e7;
+  --buy: #4ade80;
+  --sell: #f87171;
+
+  --chart-surface: var(--surface-1);
+  --chart-gridline: var(--border-subtle);
+  --chart-series-blue: var(--accent);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  background: #0f1115;
-  color: #e6e6e6;
+  background: var(--surface-0);
+  color: var(--text-primary);
 }
 
 .trade-blotter-page {
@@ -19,37 +40,154 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
+.trade-blotter-page header h1 {
+  margin: 0;
+}
+
+.header-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.trade-count {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.simulate-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-actions select {
+  padding: 6px 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: inherit;
+  font: inherit;
+}
+
+/* Proximity: filters are their own tightly-grouped unit, separated from the
+   table below by more space than the gap between individual filter fields. */
 .trade-filters {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .trade-filters input,
 .trade-filters select {
   padding: 6px 8px;
-  background: #1b1e26;
-  border: 1px solid #333;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
   border-radius: 4px;
   color: inherit;
 }
 
+.trade-filters .filter-symbol {
+  width: 110px;
+}
+
+.trade-filters .filter-trader {
+  width: 140px;
+}
+
+/* Button hierarchy: exactly one primary (solid) action per view; secondary
+   actions are outlined; tertiary/dismissive actions are borderless text. */
 button {
   padding: 6px 12px;
   border-radius: 4px;
-  border: 1px solid #444;
-  background: #1b1e26;
-  color: inherit;
+  border: 1px solid transparent;
+  font: inherit;
   cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
 }
 
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.btn-primary:not(:disabled):hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn-secondary {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+.btn-secondary:not(:disabled):hover {
+  background: var(--surface-2);
+}
+
+/* Toggle-on state for the "Auto Simulate" button — reads as "running" while
+   distinct from .btn-primary, which stays reserved for the one solid-fill
+   primary action per view (New Trade). */
+.btn-toggle-on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.btn-toggle-on:not(:disabled):hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-secondary);
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.btn-ghost:not(:disabled):hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+.btn-ghost-danger {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-secondary);
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.btn-ghost-danger:not(:disabled):hover {
+  background: rgba(248, 113, 113, 0.12);
+  color: var(--sell);
 }
 
 .trade-table {
@@ -61,15 +199,44 @@ button:disabled {
 .trade-table td {
   text-align: left;
   padding: 8px 10px;
-  border-bottom: 1px solid #262a33;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* Data hierarchy: labels (headers) stay small and muted; the numbers traders
+   actually scan for (quantity, price) get the heaviest weight in the body. */
+.trade-table th {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+
+.trade-table td.cell-quantity,
+.trade-table td.cell-price {
+  font-weight: 700;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
 }
 
 .sort-button {
   border: none;
   background: none;
   padding: 0;
-  font-weight: 600;
+  font: inherit;
+  font-weight: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
   color: inherit;
+}
+
+.trade-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.trade-table tbody tr:hover {
+  background: var(--surface-2);
 }
 
 .row-cancelled {
@@ -79,7 +246,7 @@ button:disabled {
 
 .row-actions {
   display: flex;
-  gap: 6px;
+  gap: 4px;
 }
 
 .side-badge {
@@ -91,12 +258,12 @@ button:disabled {
 
 .side-buy {
   background: #123a24;
-  color: #4ade80;
+  color: var(--buy);
 }
 
 .side-sell {
   background: #3a1212;
-  color: #f87171;
+  color: var(--sell);
 }
 
 .empty-state {
@@ -105,7 +272,7 @@ button:disabled {
 }
 
 .field-error {
-  color: #f87171;
+  color: var(--sell);
   font-size: 13px;
 }
 
@@ -116,40 +283,261 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: fade-in 0.15s ease;
 }
 
 .modal-content {
-  background: #16181f;
+  background: var(--surface-1);
   padding: 24px;
   border-radius: 8px;
-  width: min(420px, 90vw);
+  width: min(460px, 90vw);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  animation: modal-in 0.15s ease;
 }
 
-.trade-form {
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+.trade-form h2 {
+  margin: 0 0 16px;
+}
+
+/* Proximity grouping: fields that belong together (a label + its input) sit
+   close; distinct sections get real air between them so the eye chunks the
+   form into "required trade details" vs. "optional metadata" at a glance. */
+.form-row {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
-.trade-form label {
+.form-row .form-field {
+  flex: 1;
+}
+
+.form-field-symbol {
+  flex: 0 0 120px !important;
+}
+
+.form-field-side {
+  flex: 0 0 110px !important;
+}
+
+.form-field-qty,
+.form-field-price {
+  flex: 0 0 140px !important;
+}
+
+.trade-form label,
+.form-field {
   display: flex;
   flex-direction: column;
   gap: 4px;
   font-size: 14px;
+  margin-bottom: 10px;
 }
 
 .trade-form input,
 .trade-form select {
   padding: 6px 8px;
-  background: #1b1e26;
-  border: 1px solid #333;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
   border-radius: 4px;
   color: inherit;
+}
+
+.form-section {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.form-section summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  list-style: none;
+}
+
+.form-section summary::-webkit-details-marker {
+  display: none;
+}
+
+.form-section summary::before {
+  content: "+ ";
+}
+
+.form-section[open] summary::before {
+  content: "- ";
+}
+
+.form-section[open] summary {
+  margin-bottom: 10px;
 }
 
 .form-actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 16px;
+}
+
+/* --- Trade analytics --- */
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.chart-card {
+  background: var(--chart-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chart-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.chart-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.ranked-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ranked-bar-row {
+  display: grid;
+  grid-template-columns: 64px 1fr 52px;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.ranked-bar-label {
+  color: var(--text-secondary);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ranked-bar-track {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  height: 18px;
+  overflow: hidden;
+}
+
+.ranked-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.ranked-bar-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.activity-chart-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.activity-chart {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 600 / 180;
+  display: block;
+  overflow: visible;
+}
+
+.chart-gridline {
+  stroke: var(--chart-gridline);
+  stroke-width: 1;
+}
+
+.chart-axis-label {
+  fill: var(--text-muted);
+  font-size: 10px;
+}
+
+.activity-area {
+  fill: var(--chart-series-blue);
+  fill-opacity: 0.12;
+  stroke: none;
+}
+
+.activity-line {
+  fill: none;
+  stroke: var(--chart-series-blue);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.activity-crosshair {
+  stroke: var(--text-muted);
+  stroke-width: 1;
+  opacity: 0.6;
+}
+
+.activity-dot {
+  fill: var(--chart-series-blue);
+  stroke: var(--chart-surface);
+  stroke-width: 2;
+}
+
+.chart-tooltip {
+  position: absolute;
+  top: 6px;
+  transform: translateX(-50%);
+  background: var(--surface-2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+}
+
+.chart-tooltip strong {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.chart-tooltip span {
+  color: var(--text-secondary);
+  font-size: 11px;
 }
