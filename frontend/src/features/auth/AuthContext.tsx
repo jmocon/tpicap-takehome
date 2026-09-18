@@ -49,6 +49,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+// Deliberately co-located with the provider rather than split into its own
+// file. oxlint's only-export-components rule wants a module to export
+// components alone, because Vite's Fast Refresh falls back to a full reload
+// for a module that mixes them — a dev-time cost, not a runtime one. Keeping
+// a context's provider and its consumer hook together is the clearer
+// arrangement for a reader, and it's the only pairing in the codebase, so
+// the trade is a rare full reload when editing this one file.
+// oxlint-disable-next-line react/only-export-components
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
