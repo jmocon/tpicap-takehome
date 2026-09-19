@@ -60,6 +60,31 @@ Tracks what's actually done vs. outstanding. Update this whenever a milestone la
 
 Append one entry per work session, newest at the top.
 
+### 2026-09-20 — expired-session handling (WS auth rejection loop)
+
+User reported the backend logging `WS connection rejected: missing or invalid token` repeatedly. The backend was correct; the frontend had no way to notice or recover from a token the server had stopped accepting. Frontend tests **104 → 108**, all green; `oxlint` and `tsc --noEmit` clean. No backend changes.
+
+- **Root cause:** three gaps compounding. `tokenStorage.load()` restored any stored token without checking `exp` (tokens expire after 8h), so the app rendered as logged-in off a dead session; `RequireAuth` only checks that a `user` object exists, so the blotter mounted and opened a socket with that dead token; and the socket's `close` handler reconnected unconditionally every 2s, including after an auth rejection and even with no token at all — an unauthenticated retry loop that could never succeed, with nothing surfaced in the UI. A 401 from the REST API didn't clear the session either.
+- **`trades-socket.ts`** — stops reconnecting on close code `4401` (the backend's `WS_CLOSE_UNAUTHORIZED`) or when no token is present, and reports the failure instead of looping. Other closes (server restart, network blip, proxy timeout) still reconnect as before.
+- **`token-storage.ts`** — reads the `exp` claim on load and discards an already-expired session. Signature verification stays the backend's job; this only stops a known-dead token from looking live. An unparseable token is left for the backend to reject.
+- **`http-client.ts`** — a 401 ends the session, except on `/auth/login`, where 401 means "wrong password" rather than "your session ended".
+- **`auth-token.ts` / `AuthContext.tsx`** — a small `onAuthFailure` registration hook so both transports route a rejected token to `logout`, landing the user back on `/login`. Kept in the framework-agnostic token module so neither the HTTP client nor the socket has to import React.
+- **Worth noting for the submission:** the same symptom appears after a `JWT_SECRET` change, and the compose stack (`dev-only-compose-secret-change-me`) and local dev fallback (`dev-only-insecure-secret-change-me`) use different defaults, so tokens don't carry across the two ways of running the app.
+
+### 2026-09-20 — visual redesign of the app shell (from a reference mockup)
+
+User supplied a mockup image and asked to "enhance our layout". Reworked the presentation layer only — no data flow, API, or feature behaviour changed. All 104 frontend tests, `npm run lint` and `npm run build` still pass.
+
+- **Design tokens** (`index.css`) — recoloured onto a cold navy scale (`--surface-0..3`), added `--control-height`, `--radius-sm/md/lg`, `--page-max`, `--accent-soft`. Page width went 1100px → 1440px; the body gets one large radial wash behind the top-left corner.
+- **New shared pieces**: `components/icons.tsx` (17 hand-rolled inline SVG icons — no icon dependency for ~15 glyphs), `components/SelectField.tsx` (native `<select>` with a leading icon and a consistent chevron), `components/SymbolBadge.tsx` (ticker initial-avatar, colour hashed from the symbol so new tickers get one for free), `features/trade-analytics/ChartCardHeader.tsx` (shared badge + title row for all three chart types).
+- **Nav** — full-bleed bar with the app mark, underline-style active tab, user chip and icon buttons, replacing the folder-tab treatment.
+- **Blotter** — 34px display title; icon buttons for Simulate/Start Auto/New Trade; filter row rebuilt on the shared input/select shells (search icon, 38px controls, one focus ring via `:focus-within`); table moved into a rounded card that is itself the horizontal scroll container; symbol avatars, a STATUS pill, and icon row actions behind a divider.
+- **Auto Simulate** toggle now signals "running" with a pulsing stop glyph (honouring `prefers-reduced-motion`) instead of a `●` pseudo-element.
+- **Login** — brand mark + product name above the card, which gained a border and a deeper shadow.
+- **Fixed in passing (pre-existing, not from this work):** `SymbolPage` called `useTrades({})` with a fresh object literal, so the hook's `useCallback([query])` fetch re-ran on every render — an infinite fetch/render loop that React was killing with "Maximum update depth exceeded" on every visit to By Symbol. Hoisted to a module-level `NO_FILTERS` constant. Confirmed against a stashed checkout that the loop pre-dated this session, and that it's gone after.
+- **Also fixed:** the new `.trade-table td` colour rule out-specified `.pnl-positive`/`.pnl-negative`, killing P&L colouring on the Positions page; both are now qualified with `.trade-table td`.
+- Verified in a real browser (headless Chromium via Playwright, run from the scratchpad — nothing added to the repo): login, blotter, positions, by-symbol and a 430px-wide mobile pass, checked for console errors on each.
+
 ### 2026-09-19 — frontend UX audit fixes + filter-aware live merge (frontend-engineer)
 
 Worked the UX audit findings plus the one outstanding functional bug in `frontend/`. Frontend tests **76 → 104**, all green; `tsc -b`, `oxlint` (only the known `AuthContext.tsx` Fast-Refresh warning) and `vite build` clean.

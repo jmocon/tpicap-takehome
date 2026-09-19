@@ -1,6 +1,9 @@
-import { getAuthToken } from "./auth-token";
+import { getAuthToken, notifyAuthFailure } from "./auth-token";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000";
+
+/** A 401 here means "wrong password", not "your session ended" — see below. */
+const LOGIN_PATH = "/auth/login";
 
 export class ApiError extends Error {
   readonly status: number;
@@ -27,6 +30,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const body = await res.json().catch(() => undefined);
 
   if (!res.ok) {
+    // The server is the authority on whether our token is still good; when it
+    // says no, end the session here rather than leaving a logged-in-looking UI
+    // that fails every request.
+    if (res.status === 401 && path !== LOGIN_PATH) notifyAuthFailure();
     throw new ApiError(body?.error?.message ?? res.statusText, res.status, body?.error?.details);
   }
 

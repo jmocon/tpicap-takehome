@@ -1,5 +1,5 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
-import { setAuthToken } from "../../api/auth-token";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { onAuthFailure, setAuthToken } from "../../api/auth-token";
 import { authApi } from "./auth-api";
 import { tokenStorage, type StoredAuth } from "./token-storage";
 
@@ -40,6 +40,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     tokenStorage.clear();
     setAuth(undefined);
   }, []);
+
+  // A token the server rejects (expired, or signed with a since-changed
+  // secret) ends the session for real, so the user lands back on /login
+  // instead of a shell that 401s every request and gets its WS refused.
+  useEffect(() => {
+    onAuthFailure(logout);
+    return () => onAuthFailure(undefined);
+  }, [logout]);
 
   const value = useMemo<AuthContextValue>(
     () => ({ user: auth?.user, login, logout }),
