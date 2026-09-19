@@ -1,5 +1,6 @@
 import { usePositions } from "../features/positions/use-positions";
 import { PositionsTable } from "../features/positions/PositionsTable";
+import { RefreshIcon } from "../components/icons";
 
 export function PositionsPage() {
   const { positions, loading, error, lastUpdatedAt, refresh } = usePositions();
@@ -15,7 +16,8 @@ export function PositionsPage() {
           )}
         </div>
         <div className="header-actions">
-          <button type="button" className="btn-secondary" onClick={refresh} disabled={loading}>
+          <button type="button" className="btn-secondary btn-icon" onClick={refresh} disabled={loading}>
+            <RefreshIcon />
             {loading ? "Refreshing…" : "Refresh"}
           </button>
         </div>

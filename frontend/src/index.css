@@ -1,19 +1,32 @@
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  --text-primary: #e6e6e6;
-  --text-secondary: #a8adba;
-  --text-muted: #6b7280;
-  --surface-0: #0f1115;
-  --surface-1: #16181f;
-  --surface-2: #1b1e26;
-  --border: #333;
-  --border-subtle: #262a33;
-  --accent: #3987e5;
-  --accent-hover: #5598e7;
-  --buy: #4ade80;
-  --sell: #f87171;
+  --text-primary: #eef2f8;
+  --text-secondary: #9aa6bd;
+  --text-muted: #6b7890;
+  /* Surfaces climb from the page background to the controls that sit on top of
+     it: 0 = page, 1 = card/panel, 2 = control (input, select, hovered row). The
+     hue is a cold navy rather than neutral grey so the buy-green/sell-red stay
+     the only warm colours on screen. */
+  --surface-0: #070b14;
+  --surface-1: #0e1523;
+  --surface-2: #151d2e;
+  --surface-3: #1b2438;
+  --border: #253046;
+  --border-subtle: #1a2336;
+  --accent: #3b82f6;
+  --accent-hover: #5b9bff;
+  --accent-soft: rgba(59, 130, 246, 0.14);
+  --buy: #34d399;
+  --sell: #f2556b;
+
+  /* Shared geometry so a button, an input and a select can't drift apart. */
+  --control-height: 38px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --page-max: 1440px;
 
   --chart-surface: var(--surface-1);
   --chart-gridline: var(--border-subtle);
@@ -26,46 +39,85 @@
 
 body {
   margin: 0;
-  background: var(--surface-0);
+  /* A single very large radial wash behind the page: it lifts the top-left
+     corner where the nav and title live and falls away to flat --surface-0
+     further down, so the dashboard doesn't read as a uniform black rectangle. */
+  background:
+    radial-gradient(1200px 600px at 12% -10%, rgba(59, 130, 246, 0.1), transparent 60%),
+    var(--surface-0);
+  background-attachment: fixed;
   color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Icons inherit the colour and cadence of the label beside them. `flex: none`
+   keeps a glyph from being squashed when its button is in a tight row. */
+.icon {
+  flex: none;
+  display: block;
 }
 
 /* --- Primary nav --- */
 
+/* Full-bleed bar: the rule underneath it spans the viewport while
+   .app-nav-inner keeps the contents aligned with the page body below. */
 .app-nav {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 16px 16px 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  row-gap: 4px;
+  background: rgba(10, 15, 26, 0.7);
   border-bottom: 1px solid var(--border-subtle);
+  backdrop-filter: blur(8px);
 }
 
+.app-nav-inner {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 64px;
+}
+
+.app-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  margin-right: 20px;
+}
+
+.app-nav-links {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  align-self: stretch;
+}
+
+/* Tabs mark themselves with an underline flush to the bar's bottom rule
+   (inset -1px covers it), not a filled folder shape — one active indicator,
+   and the bar keeps reading as a single horizontal surface. */
 .app-nav-link {
-  padding: 8px 12px;
-  border: 1px solid transparent;
-  border-bottom: none;
-  border-radius: 4px 4px 0 0;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
   color: var(--text-secondary);
   text-decoration: none;
   font-size: 14px;
   font-weight: 600;
   transition:
     color 0.15s ease,
-    background-color 0.15s ease;
+    border-color 0.15s ease;
 }
 
 .app-nav-link:hover {
   color: var(--text-primary);
-  background: var(--surface-2);
 }
 
 .app-nav-link.active {
   color: var(--text-primary);
-  background: var(--surface-1);
-  border-color: var(--border-subtle);
+  border-bottom-color: var(--accent);
 }
 
 .app-nav-spacer {
@@ -75,36 +127,58 @@ body {
 .app-nav-user {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding-bottom: 8px;
+  gap: 16px;
 }
 
 .app-nav-username {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 13px;
+  font-weight: 500;
   color: var(--text-secondary);
 }
 
 /* --- Login page --- */
 
 .login-page {
-  max-width: 360px;
-  margin: 96px auto 0;
+  max-width: 380px;
+  margin: 12vh auto 0;
   padding: 0 16px;
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+}
+
+/* The nav's mark sets margin-right for the tabs beside it; centred on the
+   login screen there's nothing to its right to space away from. */
+.login-brand .app-logo {
+  margin-right: 0;
 }
 
 .login-form {
   background: var(--surface-1);
   border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  padding: 24px;
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
 }
 
 .trade-blotter-page,
 .symbol-page,
 .positions-page {
-  max-width: 1100px;
+  max-width: var(--page-max);
   margin: 0 auto;
-  padding: 24px 16px 64px;
+  padding: 28px 28px 72px;
 }
 
 /* One shared header rule for all three pages — they only ever differed by
@@ -118,34 +192,33 @@ body {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  row-gap: 8px;
+  gap: 16px;
+  row-gap: 12px;
   margin-bottom: 20px;
 }
 
+/* The page title is the one piece of display type in the app: big, tight and
+   near-white, so the eye lands on "what am I looking at" before anything else. */
 .trade-blotter-page header h1,
 .symbol-page header h1,
 .positions-page header h1 {
   margin: 0;
-}
-
-.symbol-page header select {
-  padding: 6px 8px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  color: inherit;
-  font: inherit;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: #fff;
 }
 
 .header-meta {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: 12px;
 }
 
 .trade-count {
   color: var(--text-secondary);
   font-size: 14px;
+  font-variant-numeric: tabular-nums;
 }
 
 .header-actions,
@@ -157,62 +230,136 @@ body {
   row-gap: 8px;
 }
 
-.header-actions select {
-  padding: 6px 8px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  color: inherit;
-  font: inherit;
-}
-
 /* Proximity: filters are their own tightly-grouped unit, separated from the
    table below by more space than the gap between individual filter fields. */
 .trade-filters {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
   flex-wrap: wrap;
   margin-bottom: 20px;
 }
 
-.trade-filters input,
-.trade-filters select {
-  padding: 6px 8px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  color: inherit;
-}
-
 .trade-filters .filter-symbol {
-  width: 110px;
+  width: 260px;
 }
 
 .trade-filters .filter-trader {
-  width: 140px;
+  width: 180px;
+}
+
+/* --- Form controls: input / select shells ---
+   Both wrap their native control in a shell that owns the border, background
+   and height, so an input, a select and a button in the same row line up
+   exactly and share one focus treatment. */
+
+.input-field,
+.select-field {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--control-height);
+  padding: 0 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.input-field:hover,
+.select-field:hover {
+  border-color: var(--surface-3);
+  background: var(--surface-3);
+}
+
+/* The shell carries the focus ring because the native control inside it is
+   borderless and transparent — :focus-within moves the ring out to the shape
+   the user actually sees. */
+.input-field:focus-within,
+.select-field:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.input-field-icon,
+.select-field-icon {
+  display: flex;
+  color: var(--text-muted);
+}
+
+.input-field input,
+.select-field select {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+}
+
+.input-field input:focus,
+.select-field select:focus {
+  outline: none;
+}
+
+.input-field input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Native chevrons differ per platform and can't be recoloured, so they're
+   suppressed and replaced by one that matches the icon set. */
+.select-field select {
+  appearance: none;
+  padding-right: 20px;
+  cursor: pointer;
+}
+
+.select-field select option {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+.select-field-chevron {
+  position: absolute;
+  right: 10px;
+  display: flex;
+  color: var(--text-muted);
+  pointer-events: none;
 }
 
 /* Symbol/Trader suggestion dropdown — floating panel, reusing the same
    surface/border/shadow tokens as .chart-tooltip rather than new colors. */
 .filter-suggest {
   position: relative;
+  display: flex;
+}
+
+.filter-suggest .input-field {
+  width: 100%;
 }
 
 .filter-suggest-dropdown {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + 6px);
   left: 0;
   z-index: 10;
   min-width: 100%;
-  max-height: 200px;
+  max-height: 240px;
   overflow-y: auto;
   margin: 0;
-  padding: 4px;
+  padding: 6px;
   list-style: none;
   background: var(--surface-2);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
 }
 
 .filter-suggest-option {
@@ -226,22 +373,35 @@ body {
 
 .filter-suggest-option:hover,
 .filter-suggest-option.active {
-  background: var(--surface-1);
+  background: var(--accent-soft);
   color: var(--accent-hover);
 }
 
 /* Button hierarchy: exactly one primary (solid) action per view; secondary
    actions are outlined; tertiary/dismissive actions are borderless text. */
 button {
-  padding: 6px 12px;
-  border-radius: 4px;
+  padding: 0 14px;
+  min-height: var(--control-height);
+  border-radius: var(--radius-md);
   border: 1px solid transparent;
   font: inherit;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
   transition:
     background-color 0.15s ease,
     border-color 0.15s ease,
+    color 0.15s ease,
     opacity 0.15s ease;
+}
+
+/* Icon + label buttons. The gap is the only thing that differs from a plain
+   button — size, radius and colour all still come from the variant class. */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 button:disabled {
@@ -258,6 +418,8 @@ button:focus-visible {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
 }
 
 .btn-primary:not(:disabled):hover {
@@ -266,45 +428,61 @@ button:focus-visible {
 }
 
 .btn-secondary {
-  background: transparent;
+  background: var(--surface-2);
   border-color: var(--border);
   color: var(--text-primary);
 }
 
 .btn-secondary:not(:disabled):hover {
-  background: var(--surface-2);
+  background: var(--surface-3);
+  border-color: var(--surface-3);
 }
 
 /* Toggle-on state for the "Auto Simulate" button. It keeps .btn-secondary's
    outlined shape on purpose — the solid accent fill stays reserved for the one
    primary action per view (New Trade) — and signals "running" with the live
-   green (--buy) plus a leading ● glyph, the same generated-content trick
-   .form-section summary uses for its open/closed marker. */
+   green (--buy) plus a pulsing stop glyph, so the state reads even in a
+   screenshot where the label alone ("Stop Auto") could be mistaken for an
+   instruction rather than a status. */
 .btn-toggle-on {
-  background: transparent;
-  border-color: var(--buy);
+  background: rgba(52, 211, 153, 0.1);
+  border-color: rgba(52, 211, 153, 0.45);
   color: var(--buy);
 }
 
-.btn-toggle-on::before {
-  content: "● ";
+.btn-toggle-on .icon {
+  animation: pulse 1.6s ease-in-out infinite;
 }
 
 .btn-toggle-on:not(:disabled):hover {
-  background: rgba(74, 222, 128, 0.12);
+  background: rgba(52, 211, 153, 0.18);
   border-color: var(--buy);
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* Respect a reduced-motion preference: the pulse is decorative, and the
+   colour + glyph already carry the "running" state on their own. */
+@media (prefers-reduced-motion: reduce) {
+  .btn-toggle-on .icon {
+    animation: none;
+  }
 }
 
 .btn-ghost {
   background: transparent;
   border-color: transparent;
   color: var(--text-secondary);
-  padding-left: 8px;
-  padding-right: 8px;
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 .btn-ghost:not(:disabled):hover {
-  background: var(--surface-2);
+  background: var(--surface-3);
   color: var(--text-primary);
 }
 
@@ -312,24 +490,29 @@ button:focus-visible {
   background: transparent;
   border-color: transparent;
   color: var(--text-secondary);
-  padding-left: 8px;
-  padding-right: 8px;
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 .btn-ghost-danger:not(:disabled):hover {
-  background: rgba(248, 113, 113, 0.12);
+  background: rgba(242, 85, 107, 0.14);
   color: var(--sell);
 }
 
 /* Horizontal overflow belongs to the table alone. Without this wrapper the
    9-column blotter widens the whole document below ~900px, so the nav and
    the page header scroll sideways along with it. */
+/* The table's own card. It owns the border/radius and is also the horizontal
+   scroll container, so when the 9 columns outgrow the viewport the table slides
+   inside its frame instead of widening the page (which would drag the nav and
+   header sideways with it). Focus rings on the edge controls stay visible
+   because every cell carries 14px of padding — more than the 2px ring plus its
+   2px offset needs. */
 .table-scroll {
   overflow-x: auto;
-  /* `overflow-x: auto` also clips vertically, so leave room for the 2px focus
-     ring (plus its 2px offset) on the edge sort buttons and row actions. */
-  padding: 4px;
-  margin: -4px;
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
 }
 
 .trade-table {
@@ -341,28 +524,45 @@ button:focus-visible {
    columns squeeze to unreadable rather than overflowing. Two values because
    the blotter carries three more columns than the positions table. */
 .table-scroll .trade-table {
-  min-width: 720px;
+  min-width: 760px;
 }
 
+/* Wider than the plain table: the blotter carries three more columns, and its
+   symbol/status/action cells are badges and icon buttons rather than text. */
 .table-scroll .trade-table-blotter {
-  min-width: 920px;
+  min-width: 1120px;
 }
 
 .trade-table th,
 .trade-table td {
   text-align: left;
-  padding: 8px 10px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--border-subtle);
 }
 
 /* Data hierarchy: labels (headers) stay small and muted; the numbers traders
    actually scan for (quantity, price) get the heaviest weight in the body. */
 .trade-table th {
-  font-size: 12px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+  background: rgba(255, 255, 255, 0.015);
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.06em;
   color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* The last row's rule would otherwise sit just inside the card's own border —
+   two lines a pixel apart. */
+.trade-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.trade-table td {
+  font-size: 14px;
+  color: var(--text-secondary);
 }
 
 .trade-table td.cell-quantity,
@@ -371,6 +571,11 @@ button:focus-visible {
   font-size: 15px;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
+}
+
+.trade-table td.cell-date {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .sort-button {
@@ -393,29 +598,100 @@ button:focus-visible {
 }
 
 .row-cancelled {
-  opacity: 0.5;
+  opacity: 0.55;
+}
+
+/* Struck-through only on the trade's own identity/figures. Extending it over
+   the action buttons and the status pill (as a row-level rule does) made the
+   still-usable History button look disabled. */
+.row-cancelled .symbol-badge-label,
+.row-cancelled .cell-quantity,
+.row-cancelled .cell-price {
   text-decoration: line-through;
 }
 
+/* Actions are a visually separate zone at the end of the row — the divider
+   stops the eye from reading "History" as another data column. */
 .row-actions {
   display: flex;
-  gap: 4px;
+  gap: 2px;
+  border-left: 1px solid var(--border-subtle);
+  white-space: nowrap;
 }
 
-.side-badge {
-  padding: 2px 8px;
-  border-radius: 999px;
+/* Shorter than a standalone button: three of them stacked at full control
+   height would set the row height for the whole table. */
+.row-actions button {
+  min-height: 30px;
+  font-size: 13px;
+  gap: 6px;
+}
+
+/* --- Ticker badge (symbol cell) --- */
+
+.cell-symbol {
+  white-space: nowrap;
+}
+
+.symbol-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.symbol-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
   font-size: 12px;
+  font-weight: 700;
+}
+
+.symbol-badge-label {
   font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.01em;
+}
+
+/* --- Status / side pills ---
+   Same shape, two different axes: status is lifecycle (neutral blue vs. grey),
+   side is direction (the buy/sell colours used everywhere else). */
+
+.status-pill,
+.side-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.status-active {
+  background: var(--accent-soft);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #7cb0ff;
+}
+
+.status-cancelled {
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.25);
+  color: var(--text-secondary);
 }
 
 .side-buy {
-  background: #123a24;
+  background: rgba(52, 211, 153, 0.12);
+  border-color: rgba(52, 211, 153, 0.35);
   color: var(--buy);
 }
 
 .side-sell {
-  background: #3a1212;
+  background: rgba(242, 85, 107, 0.12);
+  border-color: rgba(242, 85, 107, 0.35);
   color: var(--sell);
 }
 
@@ -426,13 +702,15 @@ button:focus-visible {
 
 /* --- Positions page P&L coloring --- */
 
-.pnl-positive {
+/* Qualified with `.trade-table td` so these beat the table's own body-cell
+   colour, which is equally specific on its own. */
+.trade-table td.pnl-positive {
   color: var(--buy);
   font-variant-numeric: tabular-nums;
   font-weight: 600;
 }
 
-.pnl-negative {
+.trade-table td.pnl-negative {
   color: var(--sell);
   font-variant-numeric: tabular-nums;
   font-weight: 600;
@@ -465,8 +743,9 @@ button:focus-visible {
 
 .modal-content {
   background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
   padding: 24px;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   width: min(460px, 90vw);
   /* Scroll the dialog itself on short viewports rather than letting it spill
      past the backdrop where the actions become unreachable. */
@@ -531,13 +810,26 @@ button:focus-visible {
   margin-bottom: 10px;
 }
 
+/* The trade form (and the login form, which reuses its class) uses bare inputs
+   rather than the .input-field shell — there's no leading icon to host — so it
+   restates the same height, surface and focus ring here. */
 .trade-form input,
 .trade-form select {
-  padding: 6px 8px;
+  height: var(--control-height);
+  padding: 0 12px;
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   color: inherit;
+  font: inherit;
+  font-size: 14px;
+}
+
+.trade-form input:focus,
+.trade-form select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .form-section {
@@ -640,7 +932,7 @@ button:focus-visible {
 
 .analytics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 16px;
   margin-bottom: 20px;
 }
@@ -658,18 +950,41 @@ button:focus-visible {
 .chart-card {
   background: var(--chart-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: var(--radius-lg);
+  padding: 18px 20px 20px;
   display: flex;
   flex-direction: column;
+  gap: 16px;
+  /* Charts sit on the same surface as the table card; the shadow is what
+     separates the two bands without adding another border colour. */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.chart-card-header {
+  display: flex;
+  align-items: center;
   gap: 12px;
+}
+
+/* A tinted disc, not a filled accent block: the badge is a wayfinding mark for
+   the card, and a solid accent here would compete with the primary button. */
+.chart-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  flex: none;
 }
 
 .chart-title {
   margin: 0;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 .chart-empty {
@@ -686,9 +1001,9 @@ button:focus-visible {
 
 .ranked-bar-row {
   display: grid;
-  grid-template-columns: 64px 1fr 52px;
+  grid-template-columns: 64px 1fr 64px;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   font-size: 13px;
 }
 
@@ -742,22 +1057,23 @@ button:focus-visible {
 }
 
 .ranked-bar-track {
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 4px;
-  height: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+  height: 20px;
   overflow: hidden;
 }
 
 .ranked-bar-fill {
   height: 100%;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   transition: width 0.4s ease;
 }
 
 .ranked-bar-value {
   text-align: right;
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .activity-chart-wrap {
@@ -924,6 +1240,18 @@ button:focus-visible {
    The tables keep their desktop column widths and scroll inside .table-scroll
    rather than reflowing — a blotter row is a record, and stacking its fields
    into cards would break the column-scanning this view exists for. */
+@media (max-width: 1024px) {
+  .trade-blotter-page,
+  .symbol-page,
+  .positions-page {
+    padding: 24px 20px 64px;
+  }
+
+  .app-nav-inner {
+    padding: 0 20px;
+  }
+}
+
 @media (max-width: 720px) {
   .trade-blotter-page,
   .symbol-page,
@@ -931,14 +1259,19 @@ button:focus-visible {
     padding: 16px 12px 48px;
   }
 
-  .app-nav {
-    padding: 12px 12px 0;
+  .app-nav-inner {
+    padding: 8px 12px;
+    min-height: 0;
+  }
+
+  .app-logo {
+    margin-right: 12px;
   }
 
   .trade-blotter-page header h1,
   .symbol-page header h1,
   .positions-page header h1 {
-    font-size: 24px;
+    font-size: 26px;
   }
 
   .header-meta,
@@ -948,6 +1281,16 @@ button:focus-visible {
 
   .simulate-controls {
     flex: 1 1 auto;
+  }
+
+  /* The two suggest inputs are the widest controls in the filter row; at this
+     width they'd each claim a line of their own, so they split one instead
+     (half the row each, minus their shared 10px gap). */
+  .trade-filters .filter-symbol,
+  .trade-filters .filter-trader {
+    flex: 1 1 calc(50% - 5px);
+    width: auto;
+    min-width: 0;
   }
 }
 

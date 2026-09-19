@@ -1,4 +1,5 @@
 import type { Position } from "../../types/position";
+import { SymbolBadge } from "../../components/SymbolBadge";
 
 interface PositionsTableProps {
   positions: Position[];
@@ -40,7 +41,9 @@ export function PositionsTable({ positions }: PositionsTableProps) {
         <tbody>
           {positions.map((position) => (
             <tr key={position.symbol}>
-              <td>{position.symbol}</td>
+              <td className="cell-symbol">
+                <SymbolBadge symbol={position.symbol} />
+              </td>
               <td className="cell-quantity">{position.netQuantity.toLocaleString()}</td>
               <td className="cell-price">{position.avgOpenPrice.toFixed(2)}</td>
               <td className="cell-price">{position.lastPrice.toFixed(2)}</td>

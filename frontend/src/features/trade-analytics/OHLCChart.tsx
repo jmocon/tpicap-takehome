@@ -1,9 +1,12 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { OHLCBar } from "./trade-analytics";
 import type { ChartVariant } from "./ActivityLineChart";
+import { ChartCardHeader } from "./ChartCardHeader";
 
 interface OHLCChartProps {
   title: string;
+  /** Glyph for the card header badge — see ChartCardHeader. */
+  icon?: ReactNode;
   bars: OHLCBar[];
   /** See ChartVariant — `wide` is the viewBox for one-chart-per-row layouts. */
   variant?: ChartVariant;
@@ -16,7 +19,7 @@ const PADDING_RIGHT = 12;
 const PADDING_TOP = 12;
 const PADDING_BOTTOM = 22;
 
-export function OHLCChart({ title, bars, variant = "default" }: OHLCChartProps) {
+export function OHLCChart({ title, icon, bars, variant = "default" }: OHLCChartProps) {
   // Per-bar hover, not a shared crosshair — each candle is a discrete mark
   // (four independent values), unlike ActivityLineChart's continuous series.
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
@@ -49,7 +52,7 @@ export function OHLCChart({ title, bars, variant = "default" }: OHLCChartProps) 
   if (bars.length === 0) {
     return (
       <div className="chart-card">
-        <h3 className="chart-title">{title}</h3>
+        <ChartCardHeader title={title} icon={icon} />
         <p className="chart-empty">No data yet.</p>
       </div>
     );
@@ -59,7 +62,7 @@ export function OHLCChart({ title, bars, variant = "default" }: OHLCChartProps) 
 
   return (
     <div className="chart-card">
-      <h3 className="chart-title">{title}</h3>
+      <ChartCardHeader title={title} icon={icon} />
       <div className="activity-chart-wrap">
         <svg className="activity-chart" viewBox={`0 0 ${width} ${HEIGHT}`} role="img" aria-label={title}>
           {chart.yTicks.map((tick) => (

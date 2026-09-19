@@ -4,6 +4,7 @@ import { aggregateActivity, aggregateBySide, aggregateOHLC } from "../trade-anal
 import { RankedBarChart } from "../trade-analytics/RankedBarChart";
 import { ActivityLineChart } from "../trade-analytics/ActivityLineChart";
 import { OHLCChart } from "../trade-analytics/OHLCChart";
+import { BarChartIcon, TrendingUpIcon } from "../../components/icons";
 
 const ACTIVITY_TITLE: Record<"hour" | "day" | "week", string> = {
   hour: "Trade Activity (by hour)",
@@ -32,14 +33,21 @@ export function SymbolAnalytics({ symbol, trades }: SymbolAnalyticsProps) {
     // One chart per row, so both SVG charts use the wide viewBox — see
     // ChartVariant for why the box widens instead of the height being capped.
     <section className="analytics-grid-stacked" aria-label={`${symbol} analytics`}>
-      <OHLCChart title={`${symbol} Price (OHLC)`} bars={ohlc.bars} variant="wide" />
+      <OHLCChart
+        title={`${symbol} Price (OHLC)`}
+        icon={<TrendingUpIcon size={18} />}
+        bars={ohlc.bars}
+        variant="wide"
+      />
       <RankedBarChart
         title={`${symbol} Buy vs Sell Volume`}
+        icon={<BarChartIcon size={18} />}
         items={bySide}
         colorFor={(item) => (item.label === "BUY" ? "var(--buy)" : "var(--sell)")}
       />
       <ActivityLineChart
         title={`${symbol} ${ACTIVITY_TITLE[activity.granularity]}`}
+        icon={<TrendingUpIcon size={18} />}
         points={activity.points}
         variant="wide"
       />

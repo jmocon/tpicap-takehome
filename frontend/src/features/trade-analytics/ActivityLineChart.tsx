@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { ActivityPoint } from "./trade-analytics";
+import { ChartCardHeader } from "./ChartCardHeader";
 
 /**
  * `wide` is for one-chart-per-row (stacked) layouts. The viewBox is fixed, so
@@ -14,6 +15,8 @@ export type ChartVariant = "default" | "wide";
 
 interface ActivityLineChartProps {
   title: string;
+  /** Glyph for the card header badge — see ChartCardHeader. */
+  icon?: ReactNode;
   points: ActivityPoint[];
   variant?: ChartVariant;
 }
@@ -33,7 +36,7 @@ function niceMax(value: number): number {
   return step * magnitude;
 }
 
-export function ActivityLineChart({ title, points, variant = "default" }: ActivityLineChartProps) {
+export function ActivityLineChart({ title, icon, points, variant = "default" }: ActivityLineChartProps) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const width = VIEWBOX_WIDTH[variant];
 
@@ -56,7 +59,7 @@ export function ActivityLineChart({ title, points, variant = "default" }: Activi
   if (points.length === 0) {
     return (
       <div className="chart-card">
-        <h3 className="chart-title">{title}</h3>
+        <ChartCardHeader title={title} icon={icon} />
         <p className="chart-empty">No data yet.</p>
       </div>
     );
@@ -81,7 +84,7 @@ export function ActivityLineChart({ title, points, variant = "default" }: Activi
 
   return (
     <div className="chart-card">
-      <h3 className="chart-title">{title}</h3>
+      <ChartCardHeader title={title} icon={icon} />
       <div className="activity-chart-wrap">
         <svg
           className="activity-chart"

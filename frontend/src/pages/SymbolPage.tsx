@@ -4,6 +4,15 @@ import { useTrades } from "../features/trade-blotter/use-trades";
 import { getDistinctSymbols } from "../features/symbol-detail/symbol-detail";
 import { SymbolAnalytics } from "../features/symbol-detail/SymbolAnalytics";
 import { OHLCOverview } from "../features/symbol-detail/OHLCOverview";
+import { SelectField } from "../components/SelectField";
+import { SearchIcon } from "../components/icons";
+import type { TradeQuery } from "../api/trades-api";
+
+// Module-level, not an inline `{}`: useTrades memoizes its fetch on the query's
+// *identity*, so a fresh literal on every render re-ran the fetch effect, which
+// set state, which rendered again — a request loop that React eventually killed
+// with "Maximum update depth exceeded".
+const NO_FILTERS: TradeQuery = {};
 
 export function SymbolPage() {
   const { symbol: symbolParam } = useParams<{ symbol?: string }>();
@@ -11,7 +20,7 @@ export function SymbolPage() {
   // Unfiltered — same hook the blotter page uses, so this page also gets
   // live WebSocket updates the same way. Filtering to one symbol happens
   // client-side below.
-  const { trades, loading, error } = useTrades({});
+  const { trades, loading, error } = useTrades(NO_FILTERS);
 
   const symbols = useMemo(() => getDistinctSymbols(trades), [trades]);
   // No symbol in the URL means no selection at all — don't silently default
@@ -38,14 +47,19 @@ export function SymbolPage() {
           <h1>By Symbol</h1>
         </div>
         {symbols.length > 0 && (
-          <select aria-label="Symbol" value={selectedSymbol ?? ""} onChange={(e) => handleSelect(e.target.value)}>
+          <SelectField
+            icon={<SearchIcon />}
+            aria-label="Symbol"
+            value={selectedSymbol ?? ""}
+            onChange={(e) => handleSelect(e.target.value)}
+          >
             <option value="">All symbols</option>
             {symbols.map((symbol) => (
               <option key={symbol} value={symbol}>
                 {symbol}
               </option>
             ))}
-          </select>
+          </SelectField>
         )}
       </header>
 

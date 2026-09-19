@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { filterSuggestions } from "./trade-filters-suggestions";
 
 const DEBOUNCE_MS = 300;
@@ -6,6 +6,8 @@ const MAX_SUGGESTIONS = 8;
 
 interface FilterSuggestInputProps {
   className?: string;
+  /** Optional leading glyph rendered inside the field, ahead of the text. */
+  icon?: ReactNode;
   placeholder: string;
   ariaLabel: string;
   // The committed filter value driving the actual fetch (from the parent's
@@ -23,6 +25,7 @@ interface FilterSuggestInputProps {
 // immediately (no debounce wait).
 export function FilterSuggestInput({
   className,
+  icon,
   placeholder,
   ariaLabel,
   value,
@@ -112,18 +115,22 @@ export function FilterSuggestInput({
   }
 
   return (
-    <div className="filter-suggest" ref={containerRef}>
-      <input
-        type="text"
-        className={className}
-        placeholder={placeholder}
-        aria-label={ariaLabel}
-        value={text}
-        onChange={(e) => handleChange(e.target.value)}
-        onFocus={() => setOpen(text.trim() !== "")}
-        onKeyDown={handleKeyDown}
-        autoComplete="off"
-      />
+    // `className` lands on the wrapper, not the field: the wrapper is the flex
+    // item inside .trade-filters, so it's what sizing rules have to target.
+    <div className={className ? `filter-suggest ${className}` : "filter-suggest"} ref={containerRef}>
+      <span className="input-field">
+        {icon && <span className="input-field-icon">{icon}</span>}
+        <input
+          type="text"
+          placeholder={placeholder}
+          aria-label={ariaLabel}
+          value={text}
+          onChange={(e) => handleChange(e.target.value)}
+          onFocus={() => setOpen(text.trim() !== "")}
+          onKeyDown={handleKeyDown}
+          autoComplete="off"
+        />
+      </span>
       {showDropdown && (
         <ul className="filter-suggest-dropdown" role="listbox">
           {suggestions.map((suggestion, index) => (

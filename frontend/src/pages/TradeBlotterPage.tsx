@@ -9,6 +9,8 @@ import { useAutoSimulate } from "../features/trade-blotter/use-auto-simulate";
 import { TradeForm, type TradeFormSubmitValues } from "../features/trade-form/TradeForm";
 import { TradeAnalytics } from "../features/trade-analytics/TradeAnalytics";
 import { Modal } from "../components/Modal";
+import { SelectField } from "../components/SelectField";
+import { ClockIcon, FlaskIcon, PlayIcon, PlusIcon, StopIcon } from "../components/icons";
 
 type FormTarget = { mode: "create" } | { mode: "amend"; trade: Trade } | undefined;
 
@@ -120,21 +122,24 @@ export function TradeBlotterPage() {
           <div className="simulate-controls">
             <button
               type="button"
-              className="btn-secondary"
+              className="btn-secondary btn-icon"
               onClick={handleSimulateTrade}
               disabled={simulating || autoSimulating}
             >
+              <FlaskIcon />
               {simulating ? "Simulating..." : "Simulate Trade"}
             </button>
             <button
               type="button"
-              className={autoSimulating ? "btn-secondary btn-toggle-on" : "btn-secondary"}
+              className={autoSimulating ? "btn-secondary btn-icon btn-toggle-on" : "btn-secondary btn-icon"}
               onClick={() => setAutoSimulating((current) => !current)}
               aria-pressed={autoSimulating}
             >
+              {autoSimulating ? <StopIcon /> : <PlayIcon />}
               {autoSimulating ? "Stop Auto" : "Start Auto"}
             </button>
-            <select
+            <SelectField
+              icon={<ClockIcon />}
               aria-label="Auto simulate frequency"
               value={autoSimulateIntervalMs}
               onChange={(e) => setAutoSimulateIntervalMs(Number(e.target.value))}
@@ -144,9 +149,10 @@ export function TradeBlotterPage() {
                   {preset.label}
                 </option>
               ))}
-            </select>
+            </SelectField>
           </div>
-          <button type="button" className="btn-primary" onClick={() => setFormTarget({ mode: "create" })}>
+          <button type="button" className="btn-primary btn-icon" onClick={() => setFormTarget({ mode: "create" })}>
+            <PlusIcon />
             New Trade
           </button>
         </div>

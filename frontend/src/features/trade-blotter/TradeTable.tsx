@@ -4,6 +4,8 @@ import type { TradeQuery } from "../../api/trades-api";
 import { aggregatePriceTrend, type ActivityPoint } from "../trade-analytics/trade-analytics";
 import { Sparkline } from "../trade-analytics/Sparkline";
 import { TradeHistoryModal } from "./TradeHistoryModal";
+import { SymbolBadge } from "../../components/SymbolBadge";
+import { CancelIcon, HistoryIcon, PencilIcon } from "../../components/icons";
 
 interface Column {
   label: string;
@@ -83,25 +85,30 @@ export function TradeTable({ trades, sortBy, sortDir, onSortChange, onAmend, onC
               const isCancelling = cancellingId === trade.id;
               return (
                 <tr key={trade.id} className={isCancelled ? "row-cancelled" : ""}>
-                  <td>{trade.symbol}</td>
+                  <td className="cell-symbol">
+                    <SymbolBadge symbol={trade.symbol} />
+                  </td>
                   <td className="cell-trend">
                     <Sparkline points={priceSeriesBySymbol.get(trade.symbol) ?? []} />
                   </td>
                   <td>{trade.trader}</td>
                   <td className="cell-quantity">{trade.quantity.toLocaleString()}</td>
                   <td className="cell-price">{trade.price.toFixed(2)}</td>
-                  <td>{new Date(trade.tradeDate).toLocaleString()}</td>
-                  <td>{trade.status}</td>
+                  <td className="cell-date">{new Date(trade.tradeDate).toLocaleString()}</td>
+                  <td>
+                    <span className={`status-pill status-${trade.status.toLowerCase()}`}>{trade.status}</span>
+                  </td>
                   <td>
                     <span className={`side-badge side-${trade.side.toLowerCase()}`}>{trade.side}</span>
                   </td>
                   <td className="row-actions">
                     <button
                       type="button"
-                      className="btn-secondary"
+                      className="btn-ghost btn-icon"
                       onClick={() => onAmend(trade)}
                       disabled={isCancelled || isCancelling}
                     >
+                      <PencilIcon />
                       Amend
                     </button>
                     {/* Cancel is destructive and irreversible, so the button
@@ -110,13 +117,19 @@ export function TradeTable({ trades, sortBy, sortDir, onSortChange, onAmend, onC
                         cancel before the first response lands. */}
                     <button
                       type="button"
-                      className="btn-ghost-danger"
+                      className="btn-ghost-danger btn-icon"
                       onClick={() => onCancel(trade)}
                       disabled={isCancelled || isCancelling}
                     >
+                      <CancelIcon />
                       {isCancelling ? "Cancelling…" : "Cancel"}
                     </button>
-                    <button type="button" className="btn-ghost" onClick={() => setHistoryTradeId(trade.id)}>
+                    <button
+                      type="button"
+                      className="btn-ghost btn-icon"
+                      onClick={() => setHistoryTradeId(trade.id)}
+                    >
+                      <HistoryIcon />
                       History
                     </button>
                   </td>

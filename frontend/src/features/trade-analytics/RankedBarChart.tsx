@@ -1,8 +1,12 @@
+import type { ReactNode } from "react";
 import type { RankedItem } from "./trade-analytics";
 import { formatCompact } from "./trade-analytics";
+import { ChartCardHeader } from "./ChartCardHeader";
 
 interface RankedBarChartProps {
   title: string;
+  /** Glyph for the card header badge — see ChartCardHeader. */
+  icon?: ReactNode;
   items: RankedItem[];
   colorFor: (item: RankedItem, index: number) => string;
   // Optional click handler per row — backward-compatible, the two existing
@@ -13,12 +17,12 @@ interface RankedBarChartProps {
   onSelect?: (item: RankedItem) => void;
 }
 
-export function RankedBarChart({ title, items, colorFor, onSelect }: RankedBarChartProps) {
+export function RankedBarChart({ title, icon, items, colorFor, onSelect }: RankedBarChartProps) {
   const max = Math.max(0, ...items.map((item) => item.value));
 
   return (
     <div className="chart-card">
-      <h3 className="chart-title">{title}</h3>
+      <ChartCardHeader title={title} icon={icon} />
       {max === 0 ? (
         <p className="chart-empty">No data yet.</p>
       ) : (
